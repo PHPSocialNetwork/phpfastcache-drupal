@@ -1,0 +1,21 @@
+<?php
+
+use Drupal\Core\Routing\RouteMatchInterface;
+
+/**
+ * Implements hook_help().
+ */
+function phpfastcache_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    case 'phpfastcache.admin_settings_form':
+      return t('<a href=":url" target="_blank">PhpFastCache</a> is a high-performance, distributed object caching system, generic in nature, but intended for use in speeding up dynamic web applications by alleviating database load.', array(':url' => 'https://github.com/PHPSocialNetwork/phpfastcache'));
+  }
+}
+
+/**
+ * Implements hook_cache_flush().
+ */
+function phpfastcache_cache_flush()
+{
+
+}

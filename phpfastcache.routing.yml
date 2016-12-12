@@ -1,0 +1,7 @@
+phpfastcache.admin_settings_form:
+  path: '/admin/config/development/phpfastcache'
+  defaults:
+    _form: '\Drupal\phpfastcache\Form\PhpFastCacheAdminSettingsForm'
+    _title: 'PhpFastCache'
+  requirements:
+    _permission: 'administer phpfastcache'

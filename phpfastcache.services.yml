@@ -1,0 +1,8 @@
+services:
+    phpfastcache_event_subscriber:
+      class: Drupal\phpfastcache\EventSubscriber\PhpFastCacheSubscriber
+      tags:
+        - {name: event_subscriber}
+    cache.backend.phpfastcache:
+        class: Drupal\phpfastcache\Cache\PhpFastCacheBackendFactory
+        arguments: ['@settings', '@cache_tags.invalidator.checksum']

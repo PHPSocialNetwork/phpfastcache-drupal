@@ -1,0 +1,4 @@
+phpfastcache.admin_settings_form_tab:
+  route_name: phpfastcache.admin_settings_form
+  title: PhpFastCache
+  base_route: phpfastcache_settings

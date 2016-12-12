@@ -1,0 +1,32 @@
+# Schema for the configuration files of the phpfastcache module.
+
+phpfastcache.settings:
+  type: config_object
+  label: 'PhpFastCache settings'
+  mapping:
+    phpfastcache_enabled:
+      type: boolean
+      label: 'PhpFastCache Enabled'
+    phpfastcache_default_ttl:
+      type: integer
+      label: 'PhpFastCache default ttl'
+    phpfastcache_htaccess:
+      type: boolean
+      label: 'PhpFastCache htaccess'
+    phpfastcache_default_driver:
+      type: string
+      label: 'PhpFastCache default driver'
+    phpfastcache_drivers_config:
+      type: mapping
+      label: 'Drivers config'
+      mapping:
+        files:
+          type: mapping
+          label: 'Files driver'
+          mapping:
+            path:
+              type: string
+              label: 'File path'
+            securityKey:
+              type: string
+              label: 'SecurityKey'

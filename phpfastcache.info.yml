@@ -1,0 +1,6 @@
+name: 'PhpFastCache'
+type: module
+description: 'Improve your website performances by setting up PhpFastCache components.'
+package: Cache Control
+core: 8.x
+configure: phpfastcache.admin_settings_form
