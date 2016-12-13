@@ -39,9 +39,9 @@ class PhpFastCacheBackend implements \Drupal\Core\Cache\CacheBackendInterface
      *
      * @var \Drupal\Core\Cache\CacheTagsChecksumInterface
      */
-    protected $checksumProvider;
+/*    protected $checksumProvider;*/
 
-    public function __construct($bin, $cachePool, CacheTagsChecksumInterface $checksum_provider)
+    public function __construct($bin, $cachePool/*, CacheTagsChecksumInterface $checksum_provider*/)
     {
         /**
          * Constructs a new ApcuBackend instance.
@@ -57,7 +57,7 @@ class PhpFastCacheBackend implements \Drupal\Core\Cache\CacheBackendInterface
 
         $this->cachePool = $cachePool;
         $this->bin = $bin;
-        $this->checksumProvider = $checksum_provider;
+        //$this->checksumProvider = $checksum_provider;
         $this->binPrefix = 'pfc::' . $this->bin . '::';
     }
 
@@ -83,7 +83,7 @@ class PhpFastCacheBackend implements \Drupal\Core\Cache\CacheBackendInterface
         }
         else if($allow_invalid)
         {
-            return $this->getDrupalCacheStdObject();
+            return false;//$this->getDrupalCacheStdObject();
         }
         else
         {
@@ -100,10 +100,11 @@ class PhpFastCacheBackend implements \Drupal\Core\Cache\CacheBackendInterface
         foreach ($cids as $cid) {
             $item = $this->get($cid, $allow_invalid);
             if($item !== false){
-                $cacheObjects[$cid] = $this->get($cid, $allow_invalid);
+                $cacheObjects[$cid] = $item;
                 unset($cids[$cid]);
             }
         }
+
         return $cacheObjects;
     }
 
@@ -113,6 +114,7 @@ class PhpFastCacheBackend implements \Drupal\Core\Cache\CacheBackendInterface
     public function set($cid, $data, $expire = Cache::PERMANENT, array $tags = [])
     {
         $cacheObject = $this->getDrupalCacheStdObject();
+        $cacheObject->cid = $cid;
         $cacheObject->data = $data;
         $cacheObject->expire = time();
         $cacheObject->expire = $expire;
@@ -133,7 +135,7 @@ class PhpFastCacheBackend implements \Drupal\Core\Cache\CacheBackendInterface
         }
         else
         {
-            $cacheItem->expiresAfter($expire);
+            $cacheItem->expiresAfter(($expire == Cache::PERMANENT ? 60*60*24*365 : $expire));
         }
         $this->cachePool->save($cacheItem);
     }
@@ -203,6 +205,7 @@ class PhpFastCacheBackend implements \Drupal\Core\Cache\CacheBackendInterface
      */
     public function invalidateAll()
     {
+      $this->cachePool->clear();
         //throw new UnsupportedMethodException('Method invalidateAll() is currently not supported by PhpFastCache as there no way to list items in cache');
     }
 

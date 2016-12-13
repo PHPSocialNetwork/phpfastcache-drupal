@@ -29,14 +29,7 @@ class PhpFastCacheVoidBackend implements \Drupal\Core\Cache\CacheBackendInterfac
      */
     protected $binPrefix;
 
-    /**
-     * The cache tags checksum provider.
-     *
-     * @var \Drupal\Core\Cache\CacheTagsChecksumInterface
-     */
-    protected $checksumProvider;
-
-    public function __construct($bin, $cachePool, CacheTagsChecksumInterface $checksum_provider)
+    public function __construct($bin, $cachePool)
     {
         /**
          * Constructs a new ApcuBackend instance.
@@ -48,7 +41,6 @@ class PhpFastCacheVoidBackend implements \Drupal\Core\Cache\CacheBackendInterfac
          * @param \Drupal\Core\Cache\CacheTagsChecksumInterface $checksum_provider
          *   The cache tags checksum provider.
          */
-        require_once __DIR__ . '/../../phpfastcache-php/src/autoload.php';
     }
 
 

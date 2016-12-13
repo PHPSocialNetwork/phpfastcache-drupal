@@ -28,13 +28,6 @@ class PhpFastCacheBackendFactory implements \Drupal\Core\Cache\CacheFactoryInter
      *
      * @var \Drupal\Core\Cache\CacheTagsChecksumInterface
      */
-    protected $checksumProvider;
-
-    /**
-     * The cache tags checksum provider.
-     *
-     * @var \Drupal\Core\Cache\CacheTagsChecksumInterface
-     */
     protected $settings;
 
     /**
@@ -47,9 +40,8 @@ class PhpFastCacheBackendFactory implements \Drupal\Core\Cache\CacheFactoryInter
     /**
      * PhpFastCacheBackendFactory constructor.
      * @param \Drupal\Core\Database\Connection $connection
-     * @param \Drupal\Core\Cache\CacheTagsChecksumInterface $checksum_provider
      */
-    public function __construct(Connection $connection, CacheTagsChecksumInterface $checksum_provider)
+    public function __construct(Connection $connection)
     {
         /**
          * Due to the low-level execution stack of PhpFastCacheBackend
@@ -57,11 +49,11 @@ class PhpFastCacheBackendFactory implements \Drupal\Core\Cache\CacheFactoryInter
          */
         require_once __DIR__ . '/../../phpfastcache-php/src/autoload.php';
         $this->backendClass = 'Drupal\phpfastcache\Cache\PhpFastCacheBackend';
-        $this->checksumProvider = $checksum_provider;
-        $this->cachePool = CacheManager::Files(['ignoreSymfonyNotice' => true]);
+        /*$this->checksumProvider = $checksum_provider;*/
+        $this->cachePool = CacheManager::redis(['ignoreSymfonyNotice' => true]);
         $this->connection = $connection;
         $this->settings = $this->getSettingsFromDatabase();
-
+        //$this->backendClass = 'Drupal\phpfastcache\Cache\PhpFastCacheVoidBackend';
         if(!$this->settings['phpfastcache_enabled']){
             if(strpos($_SERVER['REQUEST_URI'], 'admin/config/development/phpfastcache') === false)
             {
@@ -73,11 +65,11 @@ class PhpFastCacheBackendFactory implements \Drupal\Core\Cache\CacheFactoryInter
                  *
                  * Let's dying miserably by showing a simple but efficient message
                  */
-                //die('PhpFastCache is not enabled, please go to <strong>admin/config/development/phpfastcache</strong> then configure PhpFastCache.');
+                die('PhpFastCache is not enabled, please go to <strong>admin/config/development/phpfastcache</strong> then configure PhpFastCache.');
             }
             else
             {
-                //$this->backendClass = 'Drupal\phpfastcache\Cache\PhpFastCacheVoidBackend';
+                $this->backendClass = 'Drupal\phpfastcache\Cache\PhpFastCacheVoidBackend';
             }
         }
     }
@@ -110,6 +102,6 @@ class PhpFastCacheBackendFactory implements \Drupal\Core\Cache\CacheFactoryInter
      *   The cache backend object for the specified cache bin.
      */
     public function get($bin) {
-        return new $this->backendClass($bin, $this->cachePool, $this->checksumProvider);
+        return new $this->backendClass($bin, $this->cachePool/*, $this->checksumProvider*/);
     }
 }

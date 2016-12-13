@@ -5,4 +5,4 @@ services:
         - {name: event_subscriber}
     cache.backend.phpfastcache:
         class: Drupal\phpfastcache\Cache\PhpFastCacheBackendFactory
-        arguments: ['@database', '@cache_tags.invalidator.checksum']
+        arguments: ['@database']
