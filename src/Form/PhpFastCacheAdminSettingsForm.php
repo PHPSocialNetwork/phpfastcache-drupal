@@ -535,6 +535,14 @@ class PhpFastCacheAdminSettingsForm extends ConfigFormBase {
    */
   protected function getFilesBasedFields($driverName, Config $config, $driverDescription = '') {
     $fields = $this->getContainerDetailField($driverName, $driverDescription);
+
+    $fields[ 'driver_container_settings__' . $driverName ][ "phpfastcache_drivers_config_{$driverName}_item" ] = [
+      '#type' => 'item',
+      '#title' => '',
+      '#markup' => '<strong>Warning:</strong> Files-based drivers requires an highly performance I/O server (SSD or better), else the site performances will get worse than expected.',
+      '#description' => '',
+    ];
+
     $fields[ 'driver_container_settings__' . $driverName ][ "phpfastcache_drivers_config_{$driverName}_path" ] = [
       '#type' => 'textfield',
       '#title' => $this->t('Cache directory'),

@@ -2,8 +2,6 @@
 
 use Drupal\Core\Routing\RouteMatchInterface;
 
-require_once __DIR__ . '/phpfastcache-php/src/autoload.php';
-
 /**
  * Implements hook_help().
  */
