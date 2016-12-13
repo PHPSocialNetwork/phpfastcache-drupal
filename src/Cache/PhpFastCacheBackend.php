@@ -53,7 +53,7 @@ class PhpFastCacheBackend implements \Drupal\Core\Cache\CacheBackendInterface
          * @param \Drupal\Core\Cache\CacheTagsChecksumInterface $checksum_provider
          *   The cache tags checksum provider.
          */
-        require_once __DIR__ . '/../../phpfastcache-php/src/autoload.php';
+        //require_once __DIR__ . '/../../phpfastcache-php/src/autoload.php';
 
         $this->cachePool = $cachePool;
         $this->bin = $bin;
@@ -203,7 +203,7 @@ class PhpFastCacheBackend implements \Drupal\Core\Cache\CacheBackendInterface
      */
     public function invalidateAll()
     {
-        throw new UnsupportedMethodException('Method invalidateAll() is currently not supported by PhpFastCache as there no way to list items in cache');
+        //throw new UnsupportedMethodException('Method invalidateAll() is currently not supported by PhpFastCache as there no way to list items in cache');
     }
 
     /**

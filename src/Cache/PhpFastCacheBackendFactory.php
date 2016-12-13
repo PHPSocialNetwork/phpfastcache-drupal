@@ -73,11 +73,11 @@ class PhpFastCacheBackendFactory implements \Drupal\Core\Cache\CacheFactoryInter
                  *
                  * Let's dying miserably by showing a simple but efficient message
                  */
-                die('PhpFastCache is not enabled, please go to <strong>admin/config/development/phpfastcache</strong> then configure PhpFastCache.');
+                //die('PhpFastCache is not enabled, please go to <strong>admin/config/development/phpfastcache</strong> then configure PhpFastCache.');
             }
             else
             {
-                $this->backendClass = 'Drupal\phpfastcache\Cache\PhpFastCacheVoidBackend';
+                //$this->backendClass = 'Drupal\phpfastcache\Cache\PhpFastCacheVoidBackend';
             }
         }
     }

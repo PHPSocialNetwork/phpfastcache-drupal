@@ -3,7 +3,58 @@ phpfastcache_default_ttl: 900
 phpfastcache_htaccess: true
 phpfastcache_default_driver: files
 phpfastcache_drivers_config:
+                            apc: []
+                            apcu: []
+                            couchbase:
+                                  host: '127.0.0.1'
+                                  username: ''
+                                  password: ''
+                                  bucket: 'default'
+                                  bucket_password: 'default'
+                            devnull: []
                             files:
-                                  securityKey: ''
+                                  security_key: 'auto'
                                   path: ''
-
+                            leveldb:
+                                  security_key: 'auto'
+                                  path: ''
+                            memcache:
+                                  host: '127.0.0.1'
+                                  port: 11211
+                                  sasl_username: ''
+                                  sasl_password: ''
+                            memcached:
+                                  host: '127.0.0.1'
+                                  port: 11211
+                                  sasl_username: ''
+                                  sasl_password: ''
+                            mongodb:
+                                  host: '127.0.0.1'
+                                  port: 27017
+                                  username: ''
+                                  password: ''
+                                  timeout: 5
+                            predis:
+                                  host: '127.0.0.1'
+                                  port: 6379
+                                  password: ''
+                                  timeout: 5
+                                  dbindex: '0'
+                            redis:
+                                  host: '127.0.0.1'
+                                  port: 6379
+                                  password: ''
+                                  timeout: 5
+                                  dbindex: '0'
+                            sqlite:
+                                  security_key: 'auto'
+                                  path: ''
+                            ssdb:
+                                  host: '127.0.0.1'
+                                  port: 8888
+                                  password: ''
+                                  timeout: 5
+                            wincache: []
+                            xcache: []
+                            zenddisk: []
+                            zendshm: []
