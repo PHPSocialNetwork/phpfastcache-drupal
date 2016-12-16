@@ -2,6 +2,7 @@ phpfastcache_enabled: false
 phpfastcache_default_ttl: 900
 phpfastcache_htaccess: true
 phpfastcache_default_driver: files
+phpfastcache_bins: ['bootstrap', 'menu', 'discovery']
 phpfastcache_drivers_config:
                             apc: []
                             apcu: []

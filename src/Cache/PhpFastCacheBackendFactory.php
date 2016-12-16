@@ -1,6 +1,7 @@
 <?php
 namespace Drupal\phpfastcache\Cache;
 
+use Drupal\Core\Cache\CacheFactoryInterface;
 use phpFastCache\Cache\ExtendedCacheItemPoolInterface;
 use phpFastCache\CacheManager;
 use Drupal\Core\Database\Connection;
@@ -9,8 +10,14 @@ use phpFastCache\Exceptions\phpFastCacheDriverCheckException;
 /**
  * Class PhpFastCacheService
  */
-class PhpFastCacheBackendFactory implements \Drupal\Core\Cache\CacheFactoryInterface
+class PhpFastCacheBackendFactory implements CacheFactoryInterface
 {
+  /**
+   * Cache collector for debug purposes
+   * @var array
+   */
+    protected $cacheCollector = [];
+
     /**
      * @var ExtendedCacheItemPoolInterface
      */
@@ -81,7 +88,14 @@ class PhpFastCacheBackendFactory implements \Drupal\Core\Cache\CacheFactoryInter
    */
     protected function getPhpFastCacheInstance()
     {
-      $options = ['ignoreSymfonyNotice' => true];
+      /**
+       * Global options
+       */
+      $options = [
+        'ignoreSymfonyNotice' => true,
+        'defaultTtl' => $this->settings['phpfastcache_default_ttl'],
+      ];
+
       $driverName = $this->settings['phpfastcache_default_driver'];
       $driversConfig = $this->settings['phpfastcache_drivers_config'];
 
@@ -122,6 +136,7 @@ class PhpFastCacheBackendFactory implements \Drupal\Core\Cache\CacheFactoryInter
           case 'sqlite':
           case 'level':
             $instance = CacheManager::getInstance($driverName, array_merge($options, [
+              'htaccess' => $this->settings['phpfastcache_htaccess'],
               'path' => $driversConfig[$driverName]['path'],
               'securityKey' => $driversConfig[$driverName]['path']['security_key'],
             ]));
@@ -198,15 +213,19 @@ class PhpFastCacheBackendFactory implements \Drupal\Core\Cache\CacheFactoryInter
     }
 
     /**
-     * Gets ApcuBackend for the specified cache bin.
+     * Gets PhpFastCacheBackend for the specified cache bin.
      *
-     * @param $bin
+     * @param string $bin
      *   The cache bin for which the object is created.
      *
-     * @return \Drupal\Core\Cache\ApcuBackend
+     * @return \Drupal\phpfastcache\Cache\PhpFastCacheBackend|\Drupal\phpfastcache\Cache\PhpFastCacheVoidBackend
      *   The cache backend object for the specified cache bin.
      */
     public function get($bin) {
-        return new $this->backendClass($bin, $this->cachePool/*, $this->checksumProvider*/);
+        if(in_array($bin, $this->settings['phpfastcache_bins'])){
+          return new $this->backendClass($bin, $this->cachePool);
+        }else{
+          return new PhpFastCacheVoidBackend($bin, $this->cachePool);
+        }
     }
 }

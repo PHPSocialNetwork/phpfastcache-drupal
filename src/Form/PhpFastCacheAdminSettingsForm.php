@@ -85,20 +85,8 @@ class PhpFastCacheAdminSettingsForm extends ConfigFormBase {
       '#default_value' => (int) $config->get('phpfastcache_default_ttl'),
       '#description' => $this->t('Enable or disable all the PhpFastCache components'),
       '#required' => TRUE,
-      '#title' => $this->t('PhpFastCache default <abbr title="Time to live">TTL</abbr>'),
+      '#title' => $this->t('Default <abbr title="Time to live">TTL</abbr>'),
       '#type' => 'textfield',
-    ];
-
-    $form[ 'general' ][ 'phpfastcache_settings_wrapper' ][ 'phpfastcache_htaccess' ] = [
-      '#default_value' => (bool) $config->get('phpfastcache_htaccess'),
-      '#description' => $this->t('Automatically generate htaccess for files-based drivers such as Files, Sqlite, etc.'),
-      '#required' => TRUE,
-      '#options' => [
-        '0' => t('No'),
-        '1' => t('Yes'),
-      ],
-      '#title' => $this->t('PhpFastCache auto-htaccess generation'),
-      '#type' => 'select',
     ];
 
     $driversOption = [];
@@ -112,8 +100,53 @@ class PhpFastCacheAdminSettingsForm extends ConfigFormBase {
       '#description' => $this->t('Enable or disable all the PhpFastCache components'),
       '#required' => TRUE,
       '#options' => $driversOption,
-      '#title' => $this->t('PhpFastCache driver'),
+      '#title' => $this->t('Cache driver'),
       '#type' => 'select',
+    ];
+
+    $form[ 'general' ][ 'phpfastcache_settings_wrapper' ][ 'phpfastcache_htaccess' ] = [
+      '#default_value' => (bool) $config->get('phpfastcache_htaccess'),
+      '#description' => $this->t('Automatically generate htaccess for files-based drivers such as Files, Sqlite and Leveldb.'),
+      '#required' => TRUE,
+      '#options' => [
+        '0' => t('No'),
+        '1' => t('Yes'),
+      ],
+      '#title' => $this->t('Auto-htaccess generation'),
+      '#type' => 'select',
+      '#states' => [
+        'visible' => [
+          'select[name="phpfastcache_default_driver"]' => [
+            ['value' => 'files'],
+            ['value' => 'sqlite'],
+            ['value' => 'leveldb']
+          ],
+        ],
+      ],
+    ];
+
+
+    $binDescCallback = function($binName, $binDesc = '')
+    {
+      return '<span>' . t(ucfirst($binName)) . '</span>' . ($binDesc ? '&nbsp;-&nbsp;<small>' . t($binDesc) . '</small>' : '');
+    };
+
+    $form[ 'general' ][ 'phpfastcache_settings_wrapper' ][ 'phpfastcache_bins' ] = [
+      '#default_value' => (array) $config->get('phpfastcache_bins'),
+      '#description' => 'See /core/core.services.yml for more information about bin uses',
+      '#required' => false,
+      '#options' => [
+        'default' => $binDescCallback('default', 'Default bin if not specified by modules/core'),
+        'menu' => $binDescCallback('menu', 'Menu tree/items'),
+        'bootstrap' => $binDescCallback('bootstrap', 'Drupal bootstrap/core initialization'),
+        'render' => $binDescCallback('render', 'You must expect the cache size to grow up quickly, make sure that the driver you choose have enough memory/disk space.'),
+        'config' => $binDescCallback('config', 'You will have to purge the cache after each settings changes'),
+        'dynamic_page_cache' => $binDescCallback('dynamic page cache', ''),
+        'entity' => $binDescCallback('entity', 'You will have to purge the cache after each entity changes'),
+        'discovery' => $binDescCallback('discovery', 'Used for plugin manager, entity type manager, field manager, etc.'),
+      ],
+      '#title' => $this->t('Bins handled by PhpFastCache'),
+      '#type' => 'checkboxes',
     ];
 
     /***********************
@@ -330,6 +363,7 @@ class PhpFastCacheAdminSettingsForm extends ConfigFormBase {
       ->set('phpfastcache_default_ttl', (int) $form_state->getValue('phpfastcache_default_ttl'))
       ->set('phpfastcache_htaccess', (bool) $form_state->getValue('phpfastcache_htaccess'))
       ->set('phpfastcache_default_driver', (string) $form_state->getValue('phpfastcache_default_driver'))
+      ->set('phpfastcache_bins', array_values(array_filter((array) $form_state->getValue('phpfastcache_bins'))))
       /*****************
        * Drivers settings
        *****************/

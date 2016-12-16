@@ -34,14 +34,7 @@ class PhpFastCacheBackend implements \Drupal\Core\Cache\CacheBackendInterface
      */
     protected $binPrefix;
 
-    /**
-     * The cache tags checksum provider.
-     *
-     * @var \Drupal\Core\Cache\CacheTagsChecksumInterface
-     */
-/*    protected $checksumProvider;*/
-
-    public function __construct($bin, $cachePool/*, CacheTagsChecksumInterface $checksum_provider*/)
+    public function __construct($bin, $cachePool)
     {
         /**
          * Constructs a new ApcuBackend instance.
