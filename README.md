@@ -2,7 +2,7 @@ PhpFastCache for Drupal
 ====================
 
 The PhpFastCache module makes use of PhpFastCache library.
-It's mail goal is to improve Drupal's performances by
+It's main goal is to improve Drupal's performances by
 adding a new cache backend system depending your needs
 
 DEPENDENCIES
