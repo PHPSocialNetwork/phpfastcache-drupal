@@ -2,16 +2,22 @@
 namespace Drupal\phpfastcache\Cache;
 
 use Drupal\Core\Cache\CacheFactoryInterface;
+use Drupal\Core\Database\Connection;
 use phpFastCache\Cache\ExtendedCacheItemPoolInterface;
 use phpFastCache\CacheManager;
-use Drupal\Core\Database\Connection;
+use phpFastCache\Exceptions\phpFastCacheCoreException;
 use phpFastCache\Exceptions\phpFastCacheDriverCheckException;
+use Drupal\phpfastcache\Cache\PhpFastCacheVoidBackend;
+use Symfony\Component\HttpKernel\Exception\ServiceUnavailableHttpException;
 
 /**
  * Class PhpFastCacheService
  */
 class PhpFastCacheBackendFactory implements CacheFactoryInterface
 {
+  const ENV_DEV = 'dev';
+  const ENV_PROD = 'prod';
+
   /**
    * Cache collector for debug purposes
    * @var array
@@ -24,6 +30,7 @@ class PhpFastCacheBackendFactory implements CacheFactoryInterface
     protected $cachePool;
 
     /**
+     *
      * The PhpFastCache backend class to use.
      *
      * @var string
@@ -74,17 +81,22 @@ class PhpFastCacheBackendFactory implements CacheFactoryInterface
                  *
                  * Let's dying miserably by showing a simple but efficient message
                  */
-                die('PhpFastCache is not enabled, please go to <strong>admin/config/development/phpfastcache</strong> then configure PhpFastCache.');
+                if($this->settings['phpfastcache_env'] === self::ENV_DEV){
+                  die('PhpFastCache is not enabled, please go to <strong>admin/config/development/phpfastcache</strong> then configure PhpFastCache or comment out the cache backend override in settings.php.');
+                }else{
+                  die('PhpFastCache is not enabled.');
+                }
             }
             else
             {
-                $this->backendClass = 'Drupal\phpfastcache\Cache\PhpFastCacheVoidBackend';
+                $this->backendClass = PhpFastCacheVoidBackend::class;
             }
         }
     }
 
   /**
    * @return \phpFastCache\Cache\ExtendedCacheItemPoolInterface
+   * @throws ServiceUnavailableHttpException
    */
     protected function getPhpFastCacheInstance()
     {
@@ -182,13 +194,23 @@ class PhpFastCacheBackendFactory implements CacheFactoryInterface
            * is not recognized set it to Devnull
            */
           default:
-            $instance = CacheManager::getInstance('Devnull');
-            \Drupal::logger('cache')->critical("Unable to retrieve a valid driver (got '{$driverName}'). Drupal is now working in degraded mode");
+            $error = "Unable to retrieve a valid driver (got '{$driverName}').";
+            if($this->settings['phpfastcache_env'] === self::ENV_DEV){
+              throw new ServiceUnavailableHttpException(60, $error);
+            }else{
+              $instance = CacheManager::getInstance('Devnull');
+              \Drupal::logger('cache')->critical("{$error} Drupal is now working in degraded mode");
+            }
             break;
         }
       }catch(phpFastCacheDriverCheckException $e){
-        $instance = CacheManager::getInstance('Devnull');
-        \Drupal::logger('cache')->critical("The Driver '{$driverName}' failed to initialize with the following error {$e->getMessage()}. Drupal is now working in degraded mode");
+        $error = "The Driver '{$driverName}' failed to initialize with the following error {$e->getMessage()}.";
+        if($this->settings['phpfastcache_env'] === self::ENV_DEV){
+          throw new ServiceUnavailableHttpException(60, $error, $e);
+        }else{
+          $instance = CacheManager::getInstance('Devnull');
+          \Drupal::logger('cache')->critical("{$error} Drupal is now working in degraded mode");
+        }
       }
 
       return $instance;

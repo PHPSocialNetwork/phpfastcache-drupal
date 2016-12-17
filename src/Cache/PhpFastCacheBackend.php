@@ -3,16 +3,15 @@ namespace Drupal\phpfastcache\Cache;
 
 use Drupal\Component\Utility\Crypt;
 use Drupal\Core\Cache\Cache;
-use Drupal\Core\Cache\CacheTagsChecksumInterface;
-use phpFastCache\Cache\ExtendedCacheItemPoolInterface;
-use phpFastCache\CacheManager;
 use Drupal\Core\Cache\DatabaseBackend;
+use Drupal\Core\Cache\CacheBackendInterface;
+use phpFastCache\Cache\ExtendedCacheItemPoolInterface;
 
 
 /**
  * Class PhpFastCacheService
  */
-class PhpFastCacheBackend implements \Drupal\Core\Cache\CacheBackendInterface
+class PhpFastCacheBackend implements CacheBackendInterface
 {
     /**
      * @var ExtendedCacheItemPoolInterface
@@ -34,23 +33,17 @@ class PhpFastCacheBackend implements \Drupal\Core\Cache\CacheBackendInterface
      */
     protected $binPrefix;
 
+    /**
+     * Constructs a new PhpFastCacheBackend instance.
+     *
+     * @param $bin string
+     *   The name of the cache bin.
+     * @param ExtendedCacheItemPoolInterface $cachePool
+     */
     public function __construct($bin, $cachePool)
     {
-        /**
-         * Constructs a new ApcuBackend instance.
-         *
-         * @param string $bin
-         *   The name of the cache bin.
-         * @param string $site_prefix
-         *   The prefix to use for all keys in the storage that belong to this site.
-         * @param \Drupal\Core\Cache\CacheTagsChecksumInterface $checksum_provider
-         *   The cache tags checksum provider.
-         */
-        //require_once __DIR__ . '/../../phpfastcache-php/src/autoload.php';
-
         $this->cachePool = $cachePool;
         $this->bin = $bin;
-        //$this->checksumProvider = $checksum_provider;
         $this->binPrefix = 'pfc::' . $this->bin . '::';
     }
 

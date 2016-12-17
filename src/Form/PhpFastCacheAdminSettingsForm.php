@@ -5,8 +5,10 @@ namespace Drupal\phpfastcache\Form;
 use Drupal\Core\Config\Config;
 use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\phpfastcache\Cache\PhpFastCacheBackendFactory;
 use phpFastCache\CacheManager;
 use phpFastCache\Exceptions\phpFastCacheDriverCheckException;
+use Symfony\Component\HttpKernel\Exception\ServiceUnavailableHttpException;
 
 /**
  * Configure phpfastcache settings for this site.
@@ -79,6 +81,19 @@ class PhpFastCacheAdminSettingsForm extends ConfigFormBase {
           'select[name="phpfastcache_enabled"]' => ['value' => '0'],
         ],
       ],
+    ];
+
+    $form[ 'general' ][ 'phpfastcache_settings_wrapper' ][ 'phpfastcache_env' ] = [
+      '#default_value' => (string) $config->get('phpfastcache_env'),
+      '#description' => $this->t('<strong>Production</strong>: Will displays minimal information in case of failure.<br />
+                                    <strong>Development</strong>: Will displays very verbose information in case of failure.'),
+      '#required' => TRUE,
+      '#options' => [
+        PhpFastCacheBackendFactory::ENV_DEV => t('Production'),
+        PhpFastCacheBackendFactory::ENV_PROD => t('Development'),
+      ],
+      '#title' => $this->t('PhpFastCache environment'),
+      '#type' => 'select',
     ];
 
     $form[ 'general' ][ 'phpfastcache_settings_wrapper' ][ 'phpfastcache_default_ttl' ] = [
@@ -342,15 +357,12 @@ class PhpFastCacheAdminSettingsForm extends ConfigFormBase {
    * {@inheritdoc}
    */
   public function validateForm(array &$form, FormStateInterface $form_state) {
-
     try{
       CacheManager::getInstance($form_state->getValue('phpfastcache_default_driver'), ['ignoreSymfonyNotice' => true]);
     }catch(phpFastCacheDriverCheckException $e){
       $form_state->setError($form, 'This driver is not usable at the moment, error code: ' . $e->getMessage());
     }catch (\Exception $e){
-      /**
-       * @todo Catch others exception here
-       */
+      $form_state->setError($form, 'This driver has encountered an error: ' . $e->getMessage());
     }
   }
 
@@ -360,6 +372,7 @@ class PhpFastCacheAdminSettingsForm extends ConfigFormBase {
   public function submitForm(array &$form, FormStateInterface $form_state) {
     $config = $this->config('phpfastcache.settings');
     $config->set('phpfastcache_enabled', (bool) $form_state->getValue('phpfastcache_enabled'))
+      ->set('phpfastcache_env', (string) $form_state->getValue('phpfastcache_env'))
       ->set('phpfastcache_default_ttl', (int) $form_state->getValue('phpfastcache_default_ttl'))
       ->set('phpfastcache_htaccess', (bool) $form_state->getValue('phpfastcache_htaccess'))
       ->set('phpfastcache_default_driver', (string) $form_state->getValue('phpfastcache_default_driver'))
