@@ -8,7 +8,6 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\phpfastcache\Cache\PhpFastCacheBackendFactory;
 use phpFastCache\CacheManager;
 use phpFastCache\Exceptions\phpFastCacheDriverCheckException;
-use Symfony\Component\HttpKernel\Exception\ServiceUnavailableHttpException;
 
 /**
  * Configure phpfastcache settings for this site.
@@ -104,6 +103,30 @@ class PhpFastCacheAdminSettingsForm extends ConfigFormBase {
       '#type' => 'textfield',
     ];
 
+
+    $binDescCallback = function($binName, $binDesc = '')
+    {
+      return '<span>' . t(ucfirst($binName)) . '</span>' . ($binDesc ? '&nbsp;-&nbsp;<small>' . t($binDesc) . '</small>' : '');
+    };
+
+    $form[ 'general' ][ 'phpfastcache_settings_wrapper' ][ 'phpfastcache_bins' ] = [
+      '#default_value' => (array) $config->get('phpfastcache_bins'),
+      '#description' => 'See /core/core.services.yml for more information about bin uses',
+      '#required' => false,
+      '#options' => [
+        'default' => $binDescCallback('default', 'Default bin if not specified by modules/core'),
+        'menu' => $binDescCallback('menu', 'Menu tree/items'),
+        'bootstrap' => $binDescCallback('bootstrap', 'Drupal bootstrap/core initialization'),
+        'render' => $binDescCallback('render', 'You must expect the cache size to grow up quickly, make sure that the driver you choose have enough memory/disk space.'),
+        'config' => $binDescCallback('config', 'You will have to purge the cache after each settings changes'),
+        'dynamic_page_cache' => $binDescCallback('dynamic page cache', ''),
+        'entity' => $binDescCallback('entity', 'You will have to purge the cache after each entity changes'),
+        'discovery' => $binDescCallback('discovery', 'Used for plugin manager, entity type manager, field manager, etc.'),
+      ],
+      '#title' => $this->t('Bins handled by PhpFastCache'),
+      '#type' => 'checkboxes',
+    ];
+
     $driversOption = [];
     foreach (CacheManager::getStaticSystemDrivers() as $systemDriver) {
       $driversOption[ strtolower($systemDriver) ] = t(ucfirst($systemDriver));
@@ -138,30 +161,6 @@ class PhpFastCacheAdminSettingsForm extends ConfigFormBase {
           ],
         ],
       ],
-    ];
-
-
-    $binDescCallback = function($binName, $binDesc = '')
-    {
-      return '<span>' . t(ucfirst($binName)) . '</span>' . ($binDesc ? '&nbsp;-&nbsp;<small>' . t($binDesc) . '</small>' : '');
-    };
-
-    $form[ 'general' ][ 'phpfastcache_settings_wrapper' ][ 'phpfastcache_bins' ] = [
-      '#default_value' => (array) $config->get('phpfastcache_bins'),
-      '#description' => 'See /core/core.services.yml for more information about bin uses',
-      '#required' => false,
-      '#options' => [
-        'default' => $binDescCallback('default', 'Default bin if not specified by modules/core'),
-        'menu' => $binDescCallback('menu', 'Menu tree/items'),
-        'bootstrap' => $binDescCallback('bootstrap', 'Drupal bootstrap/core initialization'),
-        'render' => $binDescCallback('render', 'You must expect the cache size to grow up quickly, make sure that the driver you choose have enough memory/disk space.'),
-        'config' => $binDescCallback('config', 'You will have to purge the cache after each settings changes'),
-        'dynamic_page_cache' => $binDescCallback('dynamic page cache', ''),
-        'entity' => $binDescCallback('entity', 'You will have to purge the cache after each entity changes'),
-        'discovery' => $binDescCallback('discovery', 'Used for plugin manager, entity type manager, field manager, etc.'),
-      ],
-      '#title' => $this->t('Bins handled by PhpFastCache'),
-      '#type' => 'checkboxes',
     ];
 
     /***********************
