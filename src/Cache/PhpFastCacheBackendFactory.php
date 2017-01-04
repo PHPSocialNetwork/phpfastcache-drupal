@@ -64,6 +64,7 @@ class PhpFastCacheBackendFactory implements CacheFactoryInterface
          */
         define('PFC_IGNORE_COMPOSER_WARNING', true);
         require_once __DIR__ . '/../../phpfastcache-php/src/autoload.php';
+        require_once __DIR__ . '/../../phpssdb-php/src/autoload.php';
 
         $this->backendClass = 'Drupal\phpfastcache\Cache\PhpFastCacheBackend';
         $this->connection = $connection;

@@ -190,6 +190,14 @@ trait ItemBaseTrait
      *
      *******************/
 
+    /**
+     * @return string
+     */
+    public function getEncodedKey()
+    {
+        return md5($this->getKey());
+    }
+
 
     /**
      * @return mixed
