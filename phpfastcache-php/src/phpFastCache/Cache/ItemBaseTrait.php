@@ -198,7 +198,6 @@ trait ItemBaseTrait
         return md5($this->getKey());
     }
 
-
     /**
      * @return mixed
      */

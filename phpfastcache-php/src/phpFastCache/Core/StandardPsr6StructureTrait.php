@@ -73,6 +73,13 @@ trait StandardPsr6StructureTrait
                          */
                         $this->driverDelete($item);
 
+                        /**
+                         * Reset the Item
+                         */
+                        $item->set(null)
+                          ->expiresAfter(abs((int) $this->getConfig()[ 'defaultTtl' ]))
+                          ->setHit(false)
+                          ->setTags([]);
                     } else {
                         $item->setHit(true);
                     }
@@ -126,8 +133,6 @@ trait StandardPsr6StructureTrait
      */
     public function hasItem($key)
     {
-        CacheManager::$ReadHits++;
-
         return $this->getItem($key)->isHit();
     }
 
@@ -150,7 +155,7 @@ trait StandardPsr6StructureTrait
     public function deleteItem($key)
     {
         $item = $this->getItem($key);
-        if ($this->hasItem($key) && $this->driverDelete($item)) {
+        if ($item->isHit() && $this->driverDelete($item)) {
             $item->setHit(false);
             CacheManager::$WriteHits++;
             /**

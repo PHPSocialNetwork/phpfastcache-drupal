@@ -18,6 +18,11 @@ use phpFastCache\Exceptions\phpFastCacheCoreException;
 use phpFastCache\Exceptions\phpFastCacheDriverException;
 use phpFastCache\Util\Directory;
 
+/**
+ * Trait PathSeekerTrait
+ * @package phpFastCache\Core\Pool\IO
+ * @property array $config The configuration array passed via DriverBaseTrait
+ */
 trait PathSeekerTrait
 {
     /**
@@ -221,15 +226,19 @@ trait PathSeekerTrait
             }
 
             if (!file_exists($path . "/.htaccess")) {
-                $html = "order deny, allow \r\n
-deny from all \r\n
-allow from 127.0.0.1";
+                $htaccess = "<IfModule mod_authz_host>\n
+Require all denied\n
+</IfModule>\n
+<IfModule !mod_authz_host>\n
+Order Allow,Deny\n
+Deny from all\n
+</IfModule>\n";
 
                 $file = @fopen($path . '/.htaccess', 'w+');
                 if (!$file) {
                     throw new phpFastCacheDriverException('PLEASE CHMOD ' . $path . ' - 0777 OR ANY WRITABLE PERMISSION!');
                 }
-                fwrite($file, $html);
+                fwrite($file, $htaccess);
                 fclose($file);
             }
         }

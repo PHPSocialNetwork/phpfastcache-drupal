@@ -46,6 +46,6 @@ spl_autoload_register(function ($entity) {
 });
 
 if ((!defined('PFC_IGNORE_COMPOSER_WARNING') || !PFC_IGNORE_COMPOSER_WARNING) && class_exists('Composer\Autoload\ClassLoader')) {
-    trigger_error('Your project already makes use of Composer. You SHOULD use the composer dependency "phpfastcache/phpfastcache" instead of hard-autoloading.',
-      E_USER_WARNING);
+  trigger_error('Your project already makes use of Composer. You SHOULD use the composer dependency "phpfastcache/phpfastcache" instead of hard-autoloading.',
+    E_USER_WARNING);
 }
