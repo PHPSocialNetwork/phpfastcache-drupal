@@ -1,5 +1,6 @@
 phpfastcache_enabled: false
 phpfastcache_env: prod
+phpfastcache_prefix: ''
 phpfastcache_default_ttl: 900
 phpfastcache_htaccess: true
 phpfastcache_default_driver: files

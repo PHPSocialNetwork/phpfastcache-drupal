@@ -66,7 +66,7 @@ class PhpFastCacheBackendFactory implements CacheFactoryInterface
         require_once __DIR__ . '/../../phpfastcache-php/src/autoload.php';
         require_once __DIR__ . '/../../phpssdb-php/src/autoload.php';
 
-        $this->backendClass = 'Drupal\phpfastcache\Cache\PhpFastCacheBackend';
+        $this->backendClass = PhpFastCacheBackend::class;
         $this->connection = $connection;
         $this->settings = $this->getSettingsFromDatabase();
         $this->cachePool = $this->getPhpFastCacheInstance();
@@ -245,10 +245,10 @@ class PhpFastCacheBackendFactory implements CacheFactoryInterface
      *   The cache backend object for the specified cache bin.
      */
     public function get($bin) {
-        if(in_array($bin, $this->settings['phpfastcache_bins'])){
-          return new $this->backendClass($bin, $this->cachePool);
+        if(in_array($bin, $this->settings['phpfastcache_bins']) || in_array('default', $this->settings['phpfastcache_bins'])){
+          return new $this->backendClass($bin, $this->cachePool, $this->settings);
         }else{
-          return new PhpFastCacheVoidBackend($bin, $this->cachePool);
+          return new PhpFastCacheVoidBackend($bin, $this->cachePool, $this->settings);
         }
     }
 }

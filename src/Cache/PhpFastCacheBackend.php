@@ -34,17 +34,24 @@ class PhpFastCacheBackend implements CacheBackendInterface
     protected $binPrefix;
 
     /**
+     * @var array
+     */
+    protected $settings;
+
+    /**
      * Constructs a new PhpFastCacheBackend instance.
      *
      * @param $bin string
      *   The name of the cache bin.
      * @param ExtendedCacheItemPoolInterface $cachePool
+     * @param array $settings
      */
-    public function __construct($bin, $cachePool)
+    public function __construct($bin, $cachePool, $settings)
     {
         $this->cachePool = $cachePool;
         $this->bin = $bin;
         $this->binPrefix = 'pfc::' . $this->bin . '::';
+        $this->settings = $settings;
     }
 
 
@@ -102,7 +109,6 @@ class PhpFastCacheBackend implements CacheBackendInterface
         $cacheObject = $this->getDrupalCacheStdObject();
         $cacheObject->cid = $cid;
         $cacheObject->data = $data;
-        $cacheObject->expire = time();
         $cacheObject->expire = $expire;
         $cacheObject->tags = $tags;
         $cacheObject->serialized = false;
@@ -244,14 +250,25 @@ class PhpFastCacheBackend implements CacheBackendInterface
      * @see DatabaseBackend::normalizeCid()
      */
     protected function normalizeCid($cid) {
-        // Nothing to do if the ID is a US ASCII string of 255 characters or less.
+        /**
+         * Add PhpFastCache Prefix
+         */
+        $cid = $this->settings['phpfastcache_prefix'] . '-' . $cid;
+
+        /**
+         * Nothing to do if the ID is a US ASCII string of 255 characters or less.
+         */
         $cid_is_ascii = mb_check_encoding($cid, 'ASCII');
         if (strlen($cid) <= 255 && $cid_is_ascii) {
             return $cid;
         }
-        // Return a string that uses as much as possible of the original cache ID
-        // with the hash appended.
+
+        /**
+         * Return a string that uses as much as possible of the original cache ID
+         * with the hash appended.
+         */
         $hash = Crypt::hashBase64($cid);
+
         if (!$cid_is_ascii) {
             return $hash;
         }
