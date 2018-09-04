@@ -1,7 +1,7 @@
 <?php
 namespace Drupal\phpfastcache\EventSubscriber;
 
-use phpFastCache\CacheManager;
+use Phpfastcache\CacheManager;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\HttpKernel\Event\GetResponseEvent;

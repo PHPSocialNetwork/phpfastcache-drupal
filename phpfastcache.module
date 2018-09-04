@@ -1,21 +1,118 @@
 <?php
 
 use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
 
 /**
  * Implements hook_help().
  */
-function phpfastcache_help($route_name, RouteMatchInterface $route_match) {
-  switch ($route_name) {
-    case 'phpfastcache.admin_settings_form':
-      return t('<a href=":url" target="_blank">PhpFastCache</a> is a high-performance, distributed object caching system, generic in nature, but intended for use in speeding up dynamic web applications by alleviating database load.', array(':url' => 'https://github.com/PHPSocialNetwork/phpfastcache'));
+function phpfastcache_help(
+  $route_name,
+  RouteMatchInterface $route_match
+): TranslatableMarkup {
+  if ($route_name === 'phpfastcache.admin_settings_form') {
+    return t(
+      '<a href=":url" target="_blank">PhpFastCache</a> is a high-performance, distributed object caching system, generic in nature, but intended for use in speeding up dynamic web applications by alleviating database load.',
+      [
+        ':url' => 'https://github.com/PHPSocialNetwork/phpfastcache',
+      ]
+    );
   }
+
+  return t('');
 }
+
+/**
+ * @return bool
+ */
+function phpfastcache_is_library_installed(): bool {
+  return class_exists(\Phpfastcache\CacheManager::class);
+}
+
+/**
+ * @return bool
+ */
+function phpfastcache_is_settings_php_configured(): bool {
+  $cacheSettings = \Drupal\Core\Site\Settings::get('cache');
+
+  return isset($cacheSettings[ 'default' ]) && $cacheSettings[ 'default' ] === 'cache.backend.phpfastcache';
+}
+
 
 /**
  * Implements hook_cache_flush().
  */
-function phpfastcache_cache_flush()
-{
+function phpfastcache_cache_flush() {
+  /**
+   * @todo Add cache flush handler
+   */
+}
 
+
+/**
+ * Implements hook_requirements().
+ */
+function phpfastcache_requirements($phase) {
+  /**
+   * @see  https://api.drupal.org/api/drupal/core%21lib%21Drupal%21Core%21Extension%21module.api.php/function/hook_requirements/8.6.x
+   * @todo Add report status hook
+   */
+  $cacheSettings = \Drupal\Core\Site\Settings::get('cache');
+  $phpfastcacheSettings = \Drupal::config('phpfastcache.settings');;
+
+
+  if (!phpfastcache_is_library_installed()) {
+    return [
+      'phpfastcache' => [
+        'title'       => t('Phpfastcache library'),
+        'value'       => t('Introuvable'),
+        'description' => t('Unavailable Phpfastcache library'),
+        'severity'    => REQUIREMENT_ERROR,
+      ],
+    ];
+  }
+
+  if (!method_exists(\Phpfastcache\Api::class, 'getVersion')) {
+    return [
+      'phpfastcache_api' => [
+        'title'       => t('Phpfastcache API'),
+        'value'       => 'N/A',
+        'description' => t('Unavailable Phpfastcache API class'),
+        'severity'    => REQUIREMENT_ERROR,
+      ],
+    ];
+  }
+
+  if (version_compare(\Phpfastcache\Api::getVersion(), '2.0.4') !== -1) {
+    return [
+      'phpfastcache_api' => [
+      'title'       => t('Phpfastcache API'),
+      'value'       => \Phpfastcache\Api::getVersion(),
+      'description' => '',
+      'severity'    => REQUIREMENT_OK,
+      ],
+      'phpfastcache_driver' => [
+        'title'       => t('Phpfastcache Driver'),
+        'value'       => ucfirst((string) $phpfastcacheSettings->get('phpfastcache_default_driver')),
+        'description' => '',
+        'severity'    => REQUIREMENT_OK,
+      ],
+      'phpfastcache_config' => [
+        'title'       => t('Phpfastcache Settings'),
+        'value'       => $cacheSettings[ 'default' ] === 'cache.backend.phpfastcache' ? t('Settings well configured') : t('Settings not configured'),
+        'description' =>  $cacheSettings[ 'default' ] === 'cache.backend.phpfastcache' ? t('') : t('Please update your settings.php to add the missing configuration'),
+        'severity'    => $cacheSettings[ 'default' ] === 'cache.backend.phpfastcache' ? REQUIREMENT_OK : REQUIREMENT_ERROR,
+      ]
+    ];
+  }
+  else {
+    return [
+      'phpfastcache' => [
+      'title'       => t('Phpfastcache library'),
+      'value'       => \Phpfastcache\Api::getVersion(),
+      'description' => t('Phpfastcache API version is too old'),
+      'severity'    => REQUIREMENT_ERROR,
+      ],
+    ];
+  }
 }

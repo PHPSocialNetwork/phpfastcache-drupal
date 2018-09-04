@@ -50,7 +50,7 @@ class PhpFastCacheBackend implements CacheBackendInterface
     {
         $this->cachePool = $cachePool;
         $this->bin = $bin;
-        $this->binPrefix = 'pfc::' . $this->bin . '::';
+        $this->binPrefix = 'pfc.' . $this->bin . '.';
         $this->settings = $settings;
     }
 
@@ -65,7 +65,7 @@ class PhpFastCacheBackend implements CacheBackendInterface
         if($item->isHit())
         {
             $data = $item->get();
-            if($data->valid || $allow_invalid)
+            if(($data && $data->valid) || $allow_invalid)
             {
                 return $data;
             }
@@ -117,7 +117,8 @@ class PhpFastCacheBackend implements CacheBackendInterface
 
         $cacheItem = $this->cachePool->getItem($this->normalizeCid($cid));
         $cacheItem->set($cacheObject);
-        $cacheItem->setTags($tags);
+        // Not sure if its used atm
+        // $cacheItem->setTags(array_map([$this, 'normalizeCid'], $tags));
 
         if($expire > 1000000000)
         {
@@ -159,7 +160,7 @@ class PhpFastCacheBackend implements CacheBackendInterface
      */
     public function deleteMultiple(array $cids)
     {
-        $this->cachePool->deleteItems($cids);
+        $this->cachePool->deleteItems(\array_map([$this, 'normalizeCid'], $cids));
     }
 
     /**
@@ -177,7 +178,10 @@ class PhpFastCacheBackend implements CacheBackendInterface
     {
         $cacheItem = $this->cachePool->getItem($this->normalizeCid($cid));
         $cacheObject = $cacheItem->get();
-        $cacheObject->valid = false;
+
+        if(\is_object($cacheObject)){
+          $cacheObject->valid = false;
+        }
 
         $this->cachePool->save($cacheItem);
     }
@@ -250,17 +254,19 @@ class PhpFastCacheBackend implements CacheBackendInterface
      * @see DatabaseBackend::normalizeCid()
      */
     protected function normalizeCid($cid) {
+        static $maxKeyLength = 64;
+
         /**
          * Add PhpFastCache Prefix
          */
-        $cid = $this->settings['phpfastcache_prefix'] . '-' . $cid;
+        $cid = ($this->settings['phpfastcache_prefix'] ?: 'd8') . '-' . $cid;
 
         /**
-         * Nothing to do if the ID is a US ASCII string of 255 characters or less.
+         * Nothing to do if the ID is a US ASCII string of 64 characters or less.
          */
         $cid_is_ascii = mb_check_encoding($cid, 'ASCII');
-        if (strlen($cid) <= 255 && $cid_is_ascii) {
-            return $cid;
+        if (strlen($cid) <= $maxKeyLength && $cid_is_ascii) {
+            return $this->replaceUnsupportedPsr6Characters($cid);
         }
 
         /**
@@ -270,8 +276,25 @@ class PhpFastCacheBackend implements CacheBackendInterface
         $hash = Crypt::hashBase64($cid);
 
         if (!$cid_is_ascii) {
-            return $hash;
+            return $this->replaceUnsupportedPsr6Characters($hash);
         }
-        return $this->binPrefix . substr($cid, 0, 255 - strlen($hash)) . $hash;
+
+        return $this->replaceUnsupportedPsr6Characters(
+          $this->binPrefix . substr($cid, 0, $maxKeyLength - \strlen($hash)) . $hash
+        );
+    }
+
+  /**
+   * @param $str
+   *
+   * @return mixed
+   */
+    protected function replaceUnsupportedPsr6Characters($str)
+    {
+      return str_replace(
+        ['{', '}', '(', ')', '/', '\\', '@', ':'],
+        '_',
+        $str
+      );
     }
 }

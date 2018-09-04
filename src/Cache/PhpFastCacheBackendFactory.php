@@ -3,15 +3,14 @@ namespace Drupal\phpfastcache\Cache;
 
 use Drupal\Core\Cache\CacheFactoryInterface;
 use Drupal\Core\Database\Connection;
-use phpFastCache\Cache\ExtendedCacheItemPoolInterface;
-use phpFastCache\CacheManager;
-use phpFastCache\Exceptions\phpFastCacheCoreException;
-use phpFastCache\Exceptions\phpFastCacheDriverCheckException;
-use Drupal\phpfastcache\Cache\PhpFastCacheVoidBackend;
+use Phpfastcache\Exceptions\PhpfastcacheRootException;
 use Symfony\Component\HttpKernel\Exception\ServiceUnavailableHttpException;
+use Phpfastcache\CacheManager;
+use Phpfastcache\Core\Pool\ExtendedCacheItemPoolInterface;
+use Phpfastcache\Exceptions\PhpfastcacheDriverCheckException;
 
 /**
- * Class PhpFastCacheService
+ * Class PhpFastCacheBackendFactory
  */
 class PhpFastCacheBackendFactory implements CacheFactoryInterface
 {
@@ -57,21 +56,16 @@ class PhpFastCacheBackendFactory implements CacheFactoryInterface
      */
     public function __construct(Connection $connection)
     {
-        /**
-         * We are currently in the border of the Drupal bootstrap
-         * therefore autoload, and other mechanism function are not
-         * yet loaded, so we have to hard-include the Pfc autoload here
-         */
-        define('PFC_IGNORE_COMPOSER_WARNING', true);
-        require_once __DIR__ . '/../../phpfastcache-php/src/autoload.php';
-        require_once __DIR__ . '/../../phpssdb-php/src/autoload.php';
-
         $this->backendClass = PhpFastCacheBackend::class;
         $this->connection = $connection;
         $this->settings = $this->getSettingsFromDatabase();
         $this->cachePool = $this->getPhpFastCacheInstance();
 
         if(!$this->settings['phpfastcache_enabled']){
+
+          /**
+           * @todo Use route identifier
+           */
             if(strpos($_SERVER['REQUEST_URI'], 'admin/config/development/phpfastcache') === false)
             {
                 /**
@@ -83,34 +77,33 @@ class PhpFastCacheBackendFactory implements CacheFactoryInterface
                  * Let's dying miserably by showing a simple but efficient message
                  */
                 if($this->settings['phpfastcache_env'] === self::ENV_DEV){
-                  die('PhpFastCache is not enabled, please go to <strong>admin/config/development/phpfastcache</strong> then configure PhpFastCache or comment out the cache backend override in settings.php.');
+                  \Drupal::messenger()->addWarning('PhpFastCache is not enabled, please go to <strong>admin/config/development/phpfastcache</strong> then configure PhpFastCache or comment out the cache backend override in settings.php.');
                 }else{
-                  die('PhpFastCache is not enabled.');
+                  \Drupal::messenger()->addError('PhpFastCache is not enabled, please go to <strong>admin/config/development/phpfastcache</strong> then configure PhpFastCache or comment out the cache backend override in settings.php.');
                 }
-            }
-            else
-            {
                 $this->backendClass = PhpFastCacheVoidBackend::class;
             }
         }
     }
 
   /**
-   * @return \phpFastCache\Cache\ExtendedCacheItemPoolInterface
+   * @return ExtendedCacheItemPoolInterface
    * @throws ServiceUnavailableHttpException
    */
-    protected function getPhpFastCacheInstance()
+    protected function getPhpFastCacheInstance() :ExtendedCacheItemPoolInterface
     {
+      $error = false;
       /**
        * Global options
        */
       $options = [
-        'ignoreSymfonyNotice' => true,
+        //'ignoreSymfonyNotice' => true,
         'defaultTtl' => $this->settings['phpfastcache_default_ttl'],
       ];
 
       $driverName = $this->settings['phpfastcache_default_driver'];
       $driversConfig = $this->settings['phpfastcache_drivers_config'];
+      $configClass = sprintf('Phpfastcache\\Drivers\\%s\\Config', \ucfirst(\strtolower($driverName)));
 
       try{
         /**
@@ -148,11 +141,11 @@ class PhpFastCacheBackendFactory implements CacheFactoryInterface
           case 'files':
           case 'sqlite':
           case 'level':
-            $instance = CacheManager::getInstance($driverName, array_merge($options, [
+            $instance = CacheManager::getInstance($driverName, new $configClass(array_merge($options, [
               'htaccess' => $this->settings['phpfastcache_htaccess'],
               'path' => $driversConfig[$driverName]['path'],
-              'securityKey' => $driversConfig[$driverName]['path']['security_key'],
-            ]));
+              'securityKey' => $driversConfig[$driverName]['security_key'],
+            ])));
             break;
           case 'memcache':
           case 'memcached':
@@ -174,13 +167,13 @@ class PhpFastCacheBackendFactory implements CacheFactoryInterface
             break;
           case 'predis':
           case 'redis':
-            $instance = CacheManager::getInstance($driverName, array_merge($options, [
+            $instance = CacheManager::getInstance($driverName, new $configClass(array_merge($options, [
               'host' => $driversConfig[$driverName]['host'],
               'port' => $driversConfig[$driverName]['port'],
               'password' => $driversConfig[$driverName]['password'],
               'timeout' => $driversConfig[$driverName]['timeout'],
-              'dbindex' => $driversConfig[$driverName]['dbindex'],
-            ]));
+              'database' => $driversConfig[$driverName]['dbindex'],
+            ])));
             break;
           case 'ssdb':
             $instance = CacheManager::getInstance($driverName, array_merge($options, [
@@ -196,22 +189,19 @@ class PhpFastCacheBackendFactory implements CacheFactoryInterface
            */
           default:
             $error = "Unable to retrieve a valid driver (got '{$driverName}').";
-            if($this->settings['phpfastcache_env'] === self::ENV_DEV){
-              throw new ServiceUnavailableHttpException(60, $error);
-            }else{
-              $instance = CacheManager::getInstance('Devnull');
-              \Drupal::logger('cache')->critical("{$error} Drupal is now working in degraded mode");
-            }
+            $instance = CacheManager::getInstance('Devnull');
             break;
         }
-      }catch(phpFastCacheDriverCheckException $e){
-        $error = "The Driver '{$driverName}' failed to initialize with the following error {$e->getMessage()}.";
-        if($this->settings['phpfastcache_env'] === self::ENV_DEV){
-          throw new ServiceUnavailableHttpException(60, $error, $e);
-        }else{
-          $instance = CacheManager::getInstance('Devnull');
-          \Drupal::logger('cache')->critical("{$error} Drupal is now working in degraded mode");
-        }
+      }catch(PhpfastcacheDriverCheckException $e){
+        $error = "The '{$driverName}' driver failed to initialize with the following error: {$e->getMessage()}.";
+        $instance = CacheManager::getInstance('Devnull');
+      } catch(\Throwable $e){
+        $error = "The '{$driverName}' driver encountered the following error: {$e->getMessage()}.";
+        $instance = CacheManager::getInstance('Devnull');
+      }
+
+      if($error){
+        throw new ServiceUnavailableHttpException(60, $error, $e ?? null);
       }
 
       return $instance;
@@ -223,7 +213,7 @@ class PhpFastCacheBackendFactory implements CacheFactoryInterface
      * settings are not available yet.
      * @return array
      */
-    protected function getSettingsFromDatabase()
+    protected function getSettingsFromDatabase(): array
     {
         $query = 'SELECT `data`
                   FROM {' . $this->connection->escapeTable('config') . '} 
@@ -232,7 +222,7 @@ class PhpFastCacheBackendFactory implements CacheFactoryInterface
         $params = [':name' => 'phpfastcache.settings'];
         $result = $this->connection->query($query, $params);
 
-        return unserialize($result->fetchField());
+        return (array) unserialize($result->fetchField(), ['allowed_classes' => false]);
     }
 
     /**
@@ -245,7 +235,7 @@ class PhpFastCacheBackendFactory implements CacheFactoryInterface
      *   The cache backend object for the specified cache bin.
      */
     public function get($bin) {
-        if(in_array($bin, $this->settings['phpfastcache_bins']) || in_array('default', $this->settings['phpfastcache_bins'])){
+        if(\in_array($bin, $this->settings['phpfastcache_bins'], true) || \in_array('default', $this->settings['phpfastcache_bins'], true)){
           return new $this->backendClass($bin, $this->cachePool, $this->settings);
         }else{
           return new PhpFastCacheVoidBackend($bin, $this->cachePool, $this->settings);

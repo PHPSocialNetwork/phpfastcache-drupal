@@ -7,7 +7,14 @@ use Drupal\Core\Config\Config;
 use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\phpfastcache\Cache\PhpFastCacheBackendFactory;
-use phpFastCache\CacheManager;
+use Drupal\phpfastcache\Form\Fields\PhpfastcacheAdminCouchbaseFields;
+use Drupal\phpfastcache\Form\Fields\PhpfastcacheAdminFilesFields;
+use Drupal\phpfastcache\Form\Fields\PhpfastcacheAdminMemcacheFields;
+use Drupal\phpfastcache\Form\Fields\PhpfastcacheAdminMongodbFields;
+use Drupal\phpfastcache\Form\Fields\PhpfastcacheAdminNoFieldFields;
+use Drupal\phpfastcache\Form\Fields\PhpfastcacheAdminRedisFields;
+use Drupal\phpfastcache\Form\Fields\PhpfastcacheAdminSsdbFields;
+use Phpfastcache\CacheManager;
 use phpFastCache\Exceptions\phpFastCacheDriverCheckException;
 
 /**
@@ -39,15 +46,21 @@ class PhpFastCacheAdminSettingsForm extends ConfigFormBase
     {
         $randomService = new Random();
         $config = $this->config('phpfastcache.settings');
-        $cacheSettings = \Drupal\Core\Site\Settings::get('cache');
 
-        if (!isset($cacheSettings[ 'default' ]) || $cacheSettings[ 'default' ] !== 'cache.backend.phpfastcache') {
-            drupal_set_message('The cache backend has not been yet configured to use PhpFastCache.',
-              'error');
-            drupal_set_message('Please read this topic to learn more: https://api.drupal.org/api/drupal/core!core.api.php/group/cache/8.2.x',
-              'error');
-            $config->set('phpfastcache_enabled', false)
-              ->save();
+        if(!phpfastcache_is_library_installed())
+        {
+          \Drupal::messenger()->addError('The Phpfastcache library is not installed.');
+          $config->set('phpfastcache_enabled', false)
+                 ->save();
+
+          return parent::buildForm($form, $form_state);
+        }
+
+        if (!phpfastcache_is_settings_php_configured()) {
+          \Drupal::messenger()->addError('The cache backend has not been yet configured to use PhpFastCache.');
+          \Drupal::messenger()->addError('Please read this topic to learn more: https://api.drupal.org/api/drupal/core!core.api.php/group/cache/8.2.x');
+          $config->set('phpfastcache_enabled', false)
+                  ->save();
 
             return parent::buildForm($form, $form_state);
         }
@@ -146,14 +159,18 @@ class PhpFastCacheAdminSettingsForm extends ConfigFormBase
         ];
 
         $driversOption = [];
-        foreach (CacheManager::getStaticSystemDrivers() as $systemDriver) {
-            $driversOption[ strtolower($systemDriver) ] = t(ucfirst($systemDriver));
+        foreach (CacheManager::getDriverList() as $systemDriver) {
+            if($this->isAvailableDriver($systemDriver)){
+              $driversOption[ strtolower($systemDriver) ] = t(ucfirst($systemDriver));
+            }else{
+              $driversOption[ strtolower($systemDriver) ] = t(ucfirst($systemDriver)) . ' [UNAVAILABLE]';
+            }
         }
         ksort($driversOption);
 
         $form[ 'general' ][ 'phpfastcache_settings_wrapper' ][ 'phpfastcache_default_driver' ] = [
           '#default_value' => (string)$config->get('phpfastcache_default_driver'),
-          '#description' => $this->t('Enable or disable all the PhpFastCache components'),
+          '#description' => $this->t('Enable or disable all the PhpFastCache components.'),
           '#required' => true,
           '#options' => $driversOption,
           '#title' => $this->t('Cache driver'),
@@ -198,7 +215,7 @@ class PhpFastCacheAdminSettingsForm extends ConfigFormBase
          ***********************/
         $form[ 'general' ][ 'phpfastcache_settings_wrapper' ][ 'phpfastcache_driver_details' ] = array_merge(
           $form[ 'general' ][ 'phpfastcache_settings_wrapper' ][ 'phpfastcache_driver_details' ],
-          $this->getNoFieldBasedFields('apc', $config)
+          PhpfastcacheAdminNoFieldFields::getFields('apc', $config)
         );
 
         /***********************
@@ -208,7 +225,7 @@ class PhpFastCacheAdminSettingsForm extends ConfigFormBase
          ***********************/
         $form[ 'general' ][ 'phpfastcache_settings_wrapper' ][ 'phpfastcache_driver_details' ] = array_merge(
           $form[ 'general' ][ 'phpfastcache_settings_wrapper' ][ 'phpfastcache_driver_details' ],
-          $this->getNoFieldBasedFields('apcu', $config)
+          PhpfastcacheAdminNoFieldFields::getFields('apcu', $config)
         );
 
         /***********************
@@ -218,7 +235,7 @@ class PhpFastCacheAdminSettingsForm extends ConfigFormBase
          ***********************/
         $form[ 'general' ][ 'phpfastcache_settings_wrapper' ][ 'phpfastcache_driver_details' ] = array_merge(
           $form[ 'general' ][ 'phpfastcache_settings_wrapper' ][ 'phpfastcache_driver_details' ],
-          $this->getCouchBaseBasedFields('couchbase', $config)
+          PhpfastcacheAdminCouchbaseFields::getFields('couchbase', $config)
         );
 
         /***********************
@@ -228,9 +245,7 @@ class PhpFastCacheAdminSettingsForm extends ConfigFormBase
          ***********************/
         $form[ 'general' ][ 'phpfastcache_settings_wrapper' ][ 'phpfastcache_driver_details' ] = array_merge(
           $form[ 'general' ][ 'phpfastcache_settings_wrapper' ][ 'phpfastcache_driver_details' ],
-          $this->getDevelopmentBasedFields('devnull', $config,
-            'Devnull is a void cache that cache nothing, useful for development. <br />'
-            . '<strong>Do not use this settings in a production environment.</strong>')
+          PhpfastcacheAdminNoFieldFields::getFields('devnull', $config)
         );
 
         /***********************
@@ -240,7 +255,7 @@ class PhpFastCacheAdminSettingsForm extends ConfigFormBase
          ***********************/
         $form[ 'general' ][ 'phpfastcache_settings_wrapper' ][ 'phpfastcache_driver_details' ] = array_merge(
           $form[ 'general' ][ 'phpfastcache_settings_wrapper' ][ 'phpfastcache_driver_details' ],
-          $this->getFilesBasedFields('files', $config)
+          PhpfastcacheAdminFilesFields::getFields('files', $config)
         );
 
         /***********************
@@ -250,7 +265,7 @@ class PhpFastCacheAdminSettingsForm extends ConfigFormBase
          ***********************/
         $form[ 'general' ][ 'phpfastcache_settings_wrapper' ][ 'phpfastcache_driver_details' ] = array_merge(
           $form[ 'general' ][ 'phpfastcache_settings_wrapper' ][ 'phpfastcache_driver_details' ],
-          $this->getFilesBasedFields('leveldb', $config)
+          PhpfastcacheAdminFilesFields::getFields('leveldb', $config)
         );
 
         /***********************
@@ -258,10 +273,9 @@ class PhpFastCacheAdminSettingsForm extends ConfigFormBase
          * Driver: Memcache
          *
          ***********************/
-        $memcacheDesc = 'If you unsure about the different between Memcache and Memcached <a href="http://serverfault.com/a/63399" target="_blank">please read this</a>';
         $form[ 'general' ][ 'phpfastcache_settings_wrapper' ][ 'phpfastcache_driver_details' ] = array_merge(
           $form[ 'general' ][ 'phpfastcache_settings_wrapper' ][ 'phpfastcache_driver_details' ],
-          $this->getMemcacheBasedFields('memcache', $config, $memcacheDesc)
+          PhpfastcacheAdminMemcacheFields::getFields('memcache', $config)
         );
 
         /***********************
@@ -271,7 +285,7 @@ class PhpFastCacheAdminSettingsForm extends ConfigFormBase
          ***********************/
         $form[ 'general' ][ 'phpfastcache_settings_wrapper' ][ 'phpfastcache_driver_details' ] = array_merge(
           $form[ 'general' ][ 'phpfastcache_settings_wrapper' ][ 'phpfastcache_driver_details' ],
-          $this->getMemcacheBasedFields('memcached', $config, $memcacheDesc)
+          PhpfastcacheAdminMemcacheFields::getFields('memcached', $config)
         );
 
         /***********************
@@ -281,7 +295,7 @@ class PhpFastCacheAdminSettingsForm extends ConfigFormBase
          ***********************/
         $form[ 'general' ][ 'phpfastcache_settings_wrapper' ][ 'phpfastcache_driver_details' ] = array_merge(
           $form[ 'general' ][ 'phpfastcache_settings_wrapper' ][ 'phpfastcache_driver_details' ],
-          $this->getMongoDbBasedFields('mongodb', $config)
+          PhpfastcacheAdminMongodbFields::getFields('mongodb', $config)
         );
 
         /***********************
@@ -291,9 +305,7 @@ class PhpFastCacheAdminSettingsForm extends ConfigFormBase
          ***********************/
         $form[ 'general' ][ 'phpfastcache_settings_wrapper' ][ 'phpfastcache_driver_details' ] = array_merge(
           $form[ 'general' ][ 'phpfastcache_settings_wrapper' ][ 'phpfastcache_driver_details' ],
-          $this->getRedisBasedFields('predis', $config,
-            'Predis can be used if your php installation does not provide the PHP Redis Extension.<br />
-        Run the following command to require the Predis binaries: <code>$ composer require predis/predis</code>')
+          PhpfastcacheAdminRedisFields::getFields('predis', $config)
         );
 
         /***********************
@@ -303,7 +315,7 @@ class PhpFastCacheAdminSettingsForm extends ConfigFormBase
          ***********************/
         $form[ 'general' ][ 'phpfastcache_settings_wrapper' ][ 'phpfastcache_driver_details' ] = array_merge(
           $form[ 'general' ][ 'phpfastcache_settings_wrapper' ][ 'phpfastcache_driver_details' ],
-          $this->getRedisBasedFields('redis', $config, 'Redis requires that the php "redis" extension to be installed and enabled.')
+          PhpfastcacheAdminRedisFields::getFields('redis', $config)
         );
 
         /***********************
@@ -313,7 +325,7 @@ class PhpFastCacheAdminSettingsForm extends ConfigFormBase
          ***********************/
         $form[ 'general' ][ 'phpfastcache_settings_wrapper' ][ 'phpfastcache_driver_details' ] = array_merge(
           $form[ 'general' ][ 'phpfastcache_settings_wrapper' ][ 'phpfastcache_driver_details' ],
-          $this->getFilesBasedFields('sqlite', $config)
+          PhpfastcacheAdminFilesFields::getFields('sqlite', $config)
         );
 
         /***********************
@@ -323,7 +335,7 @@ class PhpFastCacheAdminSettingsForm extends ConfigFormBase
          ***********************/
         $form[ 'general' ][ 'phpfastcache_settings_wrapper' ][ 'phpfastcache_driver_details' ] = array_merge(
           $form[ 'general' ][ 'phpfastcache_settings_wrapper' ][ 'phpfastcache_driver_details' ],
-          $this->getSsdbBasedFields('ssdb', $config)
+          PhpfastcacheAdminSsdbFields::getFields('ssdb', $config)
         );
 
         /***********************
@@ -333,7 +345,7 @@ class PhpFastCacheAdminSettingsForm extends ConfigFormBase
          ***********************/
         $form[ 'general' ][ 'phpfastcache_settings_wrapper' ][ 'phpfastcache_driver_details' ] = array_merge(
           $form[ 'general' ][ 'phpfastcache_settings_wrapper' ][ 'phpfastcache_driver_details' ],
-          $this->getNoFieldBasedFields('wincache', $config)
+          PhpfastcacheAdminNoFieldFields::getFields('wincache', $config)
         );
 
         /***********************
@@ -343,7 +355,7 @@ class PhpFastCacheAdminSettingsForm extends ConfigFormBase
          ***********************/
         $form[ 'general' ][ 'phpfastcache_settings_wrapper' ][ 'phpfastcache_driver_details' ] = array_merge(
           $form[ 'general' ][ 'phpfastcache_settings_wrapper' ][ 'phpfastcache_driver_details' ],
-          $this->getNoFieldBasedFields('xcache', $config)
+          PhpfastcacheAdminNoFieldFields::getFields('xcache', $config)
         );
 
         /***********************
@@ -353,8 +365,7 @@ class PhpFastCacheAdminSettingsForm extends ConfigFormBase
          ***********************/
         $form[ 'general' ][ 'phpfastcache_settings_wrapper' ][ 'phpfastcache_driver_details' ] = array_merge(
           $form[ 'general' ][ 'phpfastcache_settings_wrapper' ][ 'phpfastcache_driver_details' ],
-          $this->getNoFieldBasedFields('zenddisk', $config,
-            'This driver however requires that your server runs on Zend Server')
+          PhpfastcacheAdminNoFieldFields::getFields('zenddisk', $config)
         );
 
         /***********************
@@ -364,8 +375,7 @@ class PhpFastCacheAdminSettingsForm extends ConfigFormBase
          ***********************/
         $form[ 'general' ][ 'phpfastcache_settings_wrapper' ][ 'phpfastcache_driver_details' ] = array_merge(
           $form[ 'general' ][ 'phpfastcache_settings_wrapper' ][ 'phpfastcache_driver_details' ],
-          $this->getNoFieldBasedFields('zendshm', $config,
-            'This driver however requires that your server runs on Zend Server')
+          PhpfastcacheAdminNoFieldFields::getFields('zendshm', $config)
         );
 
         return parent::buildForm($form, $form_state);
@@ -376,13 +386,21 @@ class PhpFastCacheAdminSettingsForm extends ConfigFormBase
      */
     public function validateForm(array &$form, FormStateInterface $form_state)
     {
-        try {
-            CacheManager::getInstance($form_state->getValue('phpfastcache_default_driver'), ['ignoreSymfonyNotice' => true]);
-        } catch (phpFastCacheDriverCheckException $e) {
+        if($this->isAvailableDriver($form_state->getValue('phpfastcache_default_driver'))){
+          try {
+            /**
+             * @todo: Pass parameters automatically
+             */
+            CacheManager::getInstance($form_state->getValue('phpfastcache_default_driver'));
+          } catch (phpFastCacheDriverCheckException $e) {
             $form_state->setError($form, 'This driver is not usable at the moment, error code: ' . $e->getMessage());
-        } catch (\Exception $e) {
+          } catch (\Throwable $e) {
             $form_state->setError($form, 'This driver has encountered an error: ' . $e->getMessage());
+          }
+        }else{
+          $form_state->setError($form, 'The driver chosen is unavailable !');
         }
+
 
         /**
          * Field Validation: phpfastcache_prefix
@@ -524,347 +542,26 @@ class PhpFastCacheAdminSettingsForm extends ConfigFormBase
         parent::submitForm($form, $form_state);
     }
 
-    /******************************
-     *
-     * FIELDS GETTERS
-     *
-     *****************************/
-
-    /**
-     * @param string $driverName
-     * @param string $driverDescription
-     * @return mixed
-     */
-    protected function getContainerDetailField($driverName, $driverDescription = '')
+  /**
+   * @param string $driverName
+   *
+   * @return bool
+   */
+    protected function isAvailableDriver(string $driverName): bool
     {
-        return [
-          'driver_container_settings__' . $driverName => [
-            '#type' => 'details',
-            '#title' => $this->t(ucfirst($driverName) . ' settings'),
-            '#description' => $driverDescription,
-            '#open' => true,
-            '#states' => [
-              'visible' => [
-                'select[name="phpfastcache_default_driver"]' => ['value' => $driverName],
-              ],
-            ],
-          ],
-        ];
-    }
-
-    /**
-     * @param string $driverName
-     * @param \Drupal\Core\Config\Config $config
-     * @param string $driverDescription
-     * @return array
-     */
-    protected function getCouchBaseBasedFields($driverName, Config $config, $driverDescription = '')
-    {
-        $fields = $this->getContainerDetailField($driverName, $driverDescription);
-
-        $fields[ 'driver_container_settings__' . $driverName ][ "phpfastcache_drivers_config_{$driverName}_host" ] = [
-          '#type' => 'textfield',
-          '#title' => $this->t('CouchBase host'),
-          '#default_value' => $config->get("phpfastcache_drivers_config.{$driverName}.host"),
-          '#description' => $this->t('The CouchBase host/ip to connect to.<br />Default: <strong>127.0.0.1</strong>'),
-          '#required' => true,
-        ];
-
-        $fields[ 'driver_container_settings__' . $driverName ][ "phpfastcache_drivers_config_{$driverName}_username" ] = [
-          '#type' => 'password',
-          '#title' => $this->t('CouchBase username'),
-          '#default_value' => $config->get("phpfastcache_drivers_config.{$driverName}.username"),
-          '#description' => $this->t('The CouchBase username'),
-          '#required' => false,
-        ];
-
-        $fields[ 'driver_container_settings__' . $driverName ][ "phpfastcache_drivers_config_{$driverName}_password" ] = [
-          '#type' => 'password',
-          '#title' => $this->t('CouchBase password'),
-          '#default_value' => $config->get("phpfastcache_drivers_config.{$driverName}.password"),
-          '#description' => $this->t('The CouchBase password, if needed'),
-          '#required' => false,
-        ];
-
-        $fields[ 'driver_container_settings__' . $driverName ][ "phpfastcache_drivers_config_{$driverName}_bucket" ] = [
-          '#type' => 'textfield',
-          '#title' => $this->t('CouchBase bucket'),
-          '#default_value' => $config->get("phpfastcache_drivers_config.{$driverName}.bucket"),
-          '#description' => $this->t('The CouchBase bucket name.<br />Default: <strong>default</strong>'),
-          '#required' => true,
-        ];
-
-        $fields[ 'driver_container_settings__' . $driverName ][ "phpfastcache_drivers_config_{$driverName}_bucket_password" ] = [
-          '#type' => 'password',
-          '#title' => $this->t('CouchBase bucket password'),
-          '#default_value' => $config->get("phpfastcache_drivers_config.{$driverName}.bucket_password"),
-          '#description' => $this->t('The CouchBase bucket password, if needed'),
-          '#required' => false,
-        ];
-
-        return $fields;
-    }
-
-    /**
-     * @param string $driverName
-     * @param \Drupal\Core\Config\Config $config
-     * @param string $driverDescription
-     * @return array
-     */
-    protected function getDevelopmentBasedFields($driverName, Config $config, $driverDescription = '')
-    {
-        return $this->getContainerDetailField($driverName, $driverDescription);
-    }
-
-    /**
-     * @param string $driverName
-     * @param \Drupal\Core\Config\Config $config
-     * @param string $driverDescription
-     * @return array
-     */
-    protected function getFilesBasedFields($driverName, Config $config, $driverDescription = '')
-    {
-        $fields = $this->getContainerDetailField($driverName, $driverDescription);
-
-        $fields[ 'driver_container_settings__' . $driverName ][ "phpfastcache_drivers_config_{$driverName}_item" ] = [
-          '#type' => 'item',
-          '#title' => '',
-          '#markup' => '<strong>Warning:</strong> Files-based drivers requires an highly performance I/O server (SSD or better), else the site performances will get worse than expected.',
-          '#description' => '',
-        ];
-
-        $fields[ 'driver_container_settings__' . $driverName ][ "phpfastcache_drivers_config_{$driverName}_path" ] = [
-          '#type' => 'textfield',
-          '#title' => $this->t('Cache directory'),
-          '#default_value' => $config->get("phpfastcache_drivers_config.{$driverName}.path") ?: sys_get_temp_dir(),
-          '#description' => $this->t('The writable path where PhpFastCache will write cache files.<br />Default: <strong>' . sys_get_temp_dir() . '</strong> '),
-          '#required' => true,
-        ];
-
-        $fields[ 'driver_container_settings__' . $driverName ][ "phpfastcache_drivers_config_{$driverName}_security_key" ] = [
-          '#type' => 'textfield',
-          '#title' => $this->t('Security key'),
-          '#default_value' => $config->get("phpfastcache_drivers_config.{$driverName}.security_key"),
-          '#description' => $this->t('A security key that will identify your website inside the cache directory.<br />Default: <strong>auto</strong> (website hostname)'),
-          '#required' => true,
-        ];
-
-        return $fields;
-    }
-
-    /**
-     * @param string $driverName
-     * @param \Drupal\Core\Config\Config $config
-     * @param string $driverDescription
-     * @return array
-     */
-    protected function getMemcacheBasedFields($driverName, Config $config, $driverDescription = '')
-    {
-        $fields = $this->getContainerDetailField($driverName, $driverDescription);
-
-        $fields[ 'driver_container_settings__' . $driverName ][ "phpfastcache_drivers_config_{$driverName}_host" ] = [
-          '#type' => 'textfield',
-          '#title' => $this->t('Memcache host'),
-          '#default_value' => $config->get("phpfastcache_drivers_config.{$driverName}.host"),
-          '#description' => $this->t('The Memcache host/ip to connect to.<br />Default: <strong>127.0.0.1</strong>'),
-          '#required' => true,
-        ];
-
-        $fields[ 'driver_container_settings__' . $driverName ][ "phpfastcache_drivers_config_{$driverName}_port" ] = [
-          '#type' => 'textfield',
-          '#title' => $this->t('Memcache port'),
-          '#default_value' => $config->get("phpfastcache_drivers_config.{$driverName}.port"),
-          '#description' => $this->t('The Memcache port to connect to.<br />Default: <strong>112211</strong>'),
-          '#required' => true,
-        ];
-
-        $fields[ 'driver_container_settings__' . $driverName ][ "phpfastcache_drivers_config_{$driverName}_sasl_username" ] = [
-          '#type' => 'password',
-          '#title' => $this->t('Memcache SASL username'),
-          '#default_value' => $config->get("phpfastcache_drivers_config.{$driverName}.username"),
-          '#description' => $this->t('The Memcache SASL username, if needed'),
-          '#required' => false,
-        ];
-
-        $fields[ 'driver_container_settings__' . $driverName ][ "phpfastcache_drivers_config_{$driverName}_sasl_password" ] = [
-          '#type' => 'password',
-          '#title' => $this->t('Memcache SASL password'),
-          '#default_value' => $config->get("phpfastcache_drivers_config.{$driverName}.password"),
-          '#description' => $this->t('The Memcache SASL password, if needed'),
-          '#required' => false,
-        ];
-
-        return $fields;
-    }
-
-    /**
-     * @param string $driverName
-     * @param \Drupal\Core\Config\Config $config
-     * @param string $driverDescription
-     * @return array
-     */
-    protected function getMongoDbBasedFields($driverName, Config $config, $driverDescription = '')
-    {
-        $fields = $this->getContainerDetailField($driverName, $driverDescription);
-
-        $fields[ 'driver_container_settings__' . $driverName ][ "phpfastcache_drivers_config_{$driverName}_host" ] = [
-          '#type' => 'textfield',
-          '#title' => $this->t('MongoDb host'),
-          '#default_value' => $config->get("phpfastcache_drivers_config.{$driverName}.host"),
-          '#description' => $this->t('The MongoDb host/ip to connect to.<br />Default: <strong>127.0.0.1</strong>'),
-          '#required' => true,
-        ];
-
-        $fields[ 'driver_container_settings__' . $driverName ][ "phpfastcache_drivers_config_{$driverName}_port" ] = [
-          '#type' => 'textfield',
-          '#title' => $this->t('MongoDb port'),
-          '#default_value' => $config->get("phpfastcache_drivers_config.{$driverName}.port"),
-          '#description' => $this->t('The MongoDb port to connect to.<br />Default: <strong>27017</strong>'),
-          '#required' => true,
-        ];
-
-        $fields[ 'driver_container_settings__' . $driverName ][ "phpfastcache_drivers_config_{$driverName}_username" ] = [
-          '#type' => 'password',
-          '#title' => $this->t('MongoDb username'),
-          '#default_value' => $config->get("phpfastcache_drivers_config.{$driverName}.username"),
-          '#description' => $this->t('The MongoDb username, if needed'),
-          '#required' => false,
-        ];
-
-        $fields[ 'driver_container_settings__' . $driverName ][ "phpfastcache_drivers_config_{$driverName}_password" ] = [
-          '#type' => 'password',
-          '#title' => $this->t('MongoDb password'),
-          '#default_value' => $config->get("phpfastcache_drivers_config.{$driverName}.password"),
-          '#description' => $this->t('The MongoDb password, if needed'),
-          '#required' => false,
-        ];
-
-        $fields[ 'driver_container_settings__' . $driverName ][ "phpfastcache_drivers_config_{$driverName}_timeout" ] = [
-          '#type' => 'textfield',
-          '#title' => $this->t('MongoDb timeout'),
-          '#default_value' => $config->get("phpfastcache_drivers_config.{$driverName}.timeout"),
-          '#description' => $this->t('The MongoDb timeout in seconds, set to <strong>0</strong> for unlimited.<br />Default: <strong>2</strong>'),
-          '#required' => true,
-        ];
-
-        return $fields;
-    }
-
-    /**
-     * @param string $driverName
-     * @param \Drupal\Core\Config\Config $config
-     * @param string $driverDescription
-     * @return array
-     */
-    protected function getNoFieldBasedFields($driverName, Config $config, $driverDescription = '')
-    {
-        $fields = $this->getContainerDetailField($driverName, '');
-        $fields[ 'driver_container_settings__' . $driverName ][ "phpfastcache_drivers_config_{$driverName}_item" ] = [
-          '#type' => 'item',
-          '#title' => t(':driver driver does not needs specific configuration',
-            [':driver' => ucfirst($driverName)]),
-          '#markup' => '',
-          '#description' => $driverDescription ?: '',
-        ];
-
-        return $fields;
-    }
-
-    /**
-     * @param string $driverName
-     * @param \Drupal\Core\Config\Config $config
-     * @param string $driverDescription
-     * @return array
-     */
-    protected function getRedisBasedFields($driverName, Config $config, $driverDescription = '')
-    {
-        $fields = $this->getContainerDetailField($driverName, $driverDescription);
-
-        $fields[ 'driver_container_settings__' . $driverName ][ "phpfastcache_drivers_config_{$driverName}_host" ] = [
-          '#type' => 'textfield',
-          '#title' => $this->t('Redis host'),
-          '#default_value' => $config->get("phpfastcache_drivers_config.{$driverName}.host"),
-          '#description' => $this->t('The Redis host/ip to connect to.<br />Default: <strong>127.0.0.1</strong>'),
-          '#required' => true,
-        ];
-
-        $fields[ 'driver_container_settings__' . $driverName ][ "phpfastcache_drivers_config_{$driverName}_port" ] = [
-          '#type' => 'textfield',
-          '#title' => $this->t('Redis port'),
-          '#default_value' => $config->get("phpfastcache_drivers_config.{$driverName}.port"),
-          '#description' => $this->t('The Redis port to connect to.<br />Default: <strong>6379</strong>'),
-          '#required' => true,
-        ];
-
-        $fields[ 'driver_container_settings__' . $driverName ][ "phpfastcache_drivers_config_{$driverName}_password" ] = [
-          '#type' => 'password',
-          '#title' => $this->t('Redis password'),
-          '#default_value' => $config->get("phpfastcache_drivers_config.{$driverName}.password"),
-          '#description' => $this->t('The Redis password if needed'),
-          '#required' => false,
-        ];
-
-        $fields[ 'driver_container_settings__' . $driverName ][ "phpfastcache_drivers_config_{$driverName}_timeout" ] = [
-          '#type' => 'textfield',
-          '#title' => $this->t('Redis timeout'),
-          '#default_value' => $config->get("phpfastcache_drivers_config.{$driverName}.timeout"),
-          '#description' => $this->t('The Redis timeout in seconds, set to <strong>0</strong> for unlimited.<br />Default: <strong>0</strong>'),
-          '#required' => true,
-        ];
-
-        $fields[ 'driver_container_settings__' . $driverName ][ "phpfastcache_drivers_config_{$driverName}_dbindex" ] = [
-          '#type' => 'textfield',
-          '#title' => $this->t('Redis Database index to use'),
-          '#default_value' => $config->get("phpfastcache_drivers_config.{$driverName}.dbindex"),
-          '#description' => $this->t('The Redis database index to use. Let to <strong>0</strong> by default.<br />Default: <strong>0</strong>'),
-          '#required' => false,
-        ];
-
-        return $fields;
-    }
-
-    /**
-     * @param string $driverName
-     * @param \Drupal\Core\Config\Config $config
-     * @param string $driverDescription
-     * @return array
-     */
-    protected function getSsdbBasedFields($driverName, Config $config, $driverDescription = '')
-    {
-        $fields = $this->getContainerDetailField($driverName, $driverDescription);
-
-        $fields[ 'driver_container_settings__' . $driverName ][ "phpfastcache_drivers_config_{$driverName}_host" ] = [
-          '#type' => 'textfield',
-          '#title' => $this->t('SSDB host'),
-          '#default_value' => $config->get("phpfastcache_drivers_config.{$driverName}.host"),
-          '#description' => $this->t('The SSDB host/ip to connect to.<br />Default: <strong>127.0.0.1</strong>'),
-          '#required' => true,
-        ];
-
-        $fields[ 'driver_container_settings__' . $driverName ][ "phpfastcache_drivers_config_{$driverName}_port" ] = [
-          '#type' => 'textfield',
-          '#title' => $this->t('SSDB port'),
-          '#default_value' => $config->get("phpfastcache_drivers_config.{$driverName}.port"),
-          '#description' => $this->t('The SSDB port to connect to.<br />Default: <strong>8888</strong>'),
-          '#required' => true,
-        ];
-
-        $fields[ 'driver_container_settings__' . $driverName ][ "phpfastcache_drivers_config_{$driverName}_password" ] = [
-          '#type' => 'password',
-          '#title' => $this->t('SSDB password'),
-          '#default_value' => $config->get("phpfastcache_drivers_config.{$driverName}.password"),
-          '#description' => $this->t('The SSDB password, if needed'),
-          '#required' => false,
-        ];
-
-        $fields[ 'driver_container_settings__' . $driverName ][ "phpfastcache_drivers_config_{$driverName}_timeout" ] = [
-          '#type' => 'textfield',
-          '#title' => $this->t('SSDB timeout'),
-          '#default_value' => (int)$config->get("phpfastcache_drivers_config.{$driverName}.timeout"),
-          '#description' => $this->t('The SSDB timeout in seconds, set to <strong>0</strong> for unlimited.<br />Default: <strong>2</strong>.'),
-          '#required' => true,
-        ];
-
-        return $fields;
+      try{
+        /**
+         * Mute the eventual notices/warning we
+         * count encounter in some context when
+         * using memcache and memcached or
+         * redis and predis together for example
+         */
+        @CacheManager::getInstance($driverName);
+        return true;
+      }catch(PhpfastcacheDriverCheckException $e){
+        return false;
+      }catch(\Throwable $e){
+        return true;
+      }
     }
 }
