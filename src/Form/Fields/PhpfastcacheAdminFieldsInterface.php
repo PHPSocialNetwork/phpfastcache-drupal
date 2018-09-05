@@ -9,6 +9,7 @@
 namespace Drupal\phpfastcache\Form\Fields;
 
 use Drupal\Core\Config\Config;
+use Drupal\Core\Form\FormStateInterface;
 
 interface PhpfastcacheAdminFieldsInterface {
 
@@ -27,4 +28,13 @@ interface PhpfastcacheAdminFieldsInterface {
    * @return array
    */
   public static function getDescription(string $driverName): string;
+
+  /**
+   * @param string                               $driverName
+   * @param \Drupal\Core\Form\FormStateInterface $form_state
+   * @param \Drupal\Core\Config\Config           $config
+   *
+   * @return void
+   */
+  public static function setConfig(string $driverName, FormStateInterface $form_state, Config $config);
 }

@@ -2,6 +2,7 @@
 namespace Drupal\phpfastcache\Form\Fields;
 
 use Drupal\Core\Config\Config;
+use Drupal\Core\Form\FormStateInterface;
 
 class PhpfastcacheAdminMongodbFields implements PhpfastcacheAdminFieldsInterface{
 
@@ -58,5 +59,18 @@ class PhpfastcacheAdminMongodbFields implements PhpfastcacheAdminFieldsInterface
     ];
 
     return $fields;
+  }
+
+  public static function setConfig(string $driverName, FormStateInterface $form_state, Config $config) {
+    $config->set(
+      'phpfastcache_drivers_config.' . $driverName,
+      [
+        'host' => (string)$form_state->getValue('phpfastcache_drivers_config_mongodb_host'),
+        'port' => (int)$form_state->getValue('phpfastcache_drivers_config_mongodb_port'),
+        'username' => (string)$form_state->getValue('phpfastcache_drivers_config_mongodb_username'),
+        'password' => (string)$form_state->getValue('phpfastcache_drivers_config_mongodb_password'),
+        'timeout' => (int)$form_state->getValue('phpfastcache_drivers_config_mongodb_timeout'),
+      ]
+    );
   }
 }

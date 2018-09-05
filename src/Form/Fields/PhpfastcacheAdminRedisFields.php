@@ -3,6 +3,7 @@
 namespace Drupal\phpfastcache\Form\Fields;
 
 use Drupal\Core\Config\Config;
+use Drupal\Core\Form\FormStateInterface;
 
 class PhpfastcacheAdminRedisFields implements PhpfastcacheAdminFieldsInterface {
 
@@ -80,11 +81,11 @@ class PhpfastcacheAdminRedisFields implements PhpfastcacheAdminFieldsInterface {
       '#required'      => TRUE,
     ];
 
-    $fields[ 'driver_container_settings__' . $driverName ][ "phpfastcache_drivers_config_{$driverName}_dbindex" ] = [
+    $fields[ 'driver_container_settings__' . $driverName ][ "phpfastcache_drivers_config_{$driverName}_database" ] = [
       '#type'          => 'textfield',
       '#title'         => t('Redis Database index to use'),
       '#default_value' => $config->get(
-        "phpfastcache_drivers_config.{$driverName}.dbindex"
+        "phpfastcache_drivers_config.{$driverName}.database"
       ),
       '#description'   => t(
         'The Redis database index to use. Let to <strong>0</strong> by default.<br />Default: <strong>0</strong>'
@@ -93,5 +94,18 @@ class PhpfastcacheAdminRedisFields implements PhpfastcacheAdminFieldsInterface {
     ];
 
     return $fields;
+  }
+
+  public static function setConfig(string $driverName, FormStateInterface $form_state, Config $config) {
+    $config->set(
+      'phpfastcache_drivers_config.' . $driverName,
+      [
+        'host' => (string)$form_state->getValue("phpfastcache_drivers_config_{$driverName}_host"),
+        'port' => (int)$form_state->getValue("phpfastcache_drivers_config_{$driverName}_port"),
+        'password' => (string)$form_state->getValue("phpfastcache_drivers_config_{$driverName}_password"),
+        'timeout' => (int)$form_state->getValue("phpfastcache_drivers_config_{$driverName}_timeout"),
+        'database' => (int)$form_state->getValue("phpfastcache_drivers_config_{$driverName}_database"),
+      ]
+    );
   }
 }

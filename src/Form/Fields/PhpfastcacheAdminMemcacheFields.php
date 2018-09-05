@@ -2,6 +2,7 @@
 namespace Drupal\phpfastcache\Form\Fields;
 
 use Drupal\Core\Config\Config;
+use Drupal\Core\Form\FormStateInterface;
 
 class PhpfastcacheAdminMemcacheFields implements PhpfastcacheAdminFieldsInterface{
 
@@ -51,5 +52,17 @@ class PhpfastcacheAdminMemcacheFields implements PhpfastcacheAdminFieldsInterfac
     ];
 
     return $fields;
+  }
+
+  public static function setConfig(string $driverName, FormStateInterface $form_state, Config $config) {
+    $config->set(
+      'phpfastcache_drivers_config.' . $driverName,
+      [
+        'host' => (string)$form_state->getValue("phpfastcache_drivers_config_{$driverName}_host"),
+        'port' => (int) $form_state->getValue("phpfastcache_drivers_config_{$driverName}_port"),
+        'sasl_username' => (string)$form_state->getValue("phpfastcache_drivers_config_{$driverName}_sasl_username"),
+        'sasl_password' => (string)$form_state->getValue("phpfastcache_drivers_config_{$driverName}_sasl_password"),
+      ]
+    );
   }
 }

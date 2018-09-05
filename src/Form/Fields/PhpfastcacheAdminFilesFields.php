@@ -2,6 +2,7 @@
 namespace Drupal\phpfastcache\Form\Fields;
 
 use Drupal\Core\Config\Config;
+use Drupal\Core\Form\FormStateInterface;
 
 class PhpfastcacheAdminFilesFields implements PhpfastcacheAdminFieldsInterface{
 
@@ -40,6 +41,46 @@ class PhpfastcacheAdminFilesFields implements PhpfastcacheAdminFieldsInterface{
       '#required' => true,
     ];
 
+    if($driverName === 'files'){
+      $fields[ 'driver_container_settings__' . $driverName ][ "phpfastcache_drivers_config_{$driverName}_secure_file_manipulation" ] = [
+        '#default_value' => $config->get("phpfastcache_drivers_config.{$driverName}.secure_file_manipulation"),
+        '#description' => t('A secure mode that will write file in a secured mode (writing on temporary name then rename).'),
+        '#required' => true,
+        '#options' => [
+          '0' => t('No'),
+          '1' => t('Yes'),
+        ],
+        '#title' => t('Secure file manipulation'),
+        '#type' => 'select',
+      ];
+    }
+
+    $fields[ 'driver_container_settings__' . $driverName ][ "phpfastcache_drivers_config_{$driverName}_htaccess" ] = [
+      '#default_value' => (bool)$config->get('phpfastcache_htaccess'),
+      '#description' => t('Automatically generate htaccess for files-based drivers such as Files, Sqlite and Leveldb.'),
+      '#required' => true,
+      '#options' => [
+        '0' => t('No'),
+        '1' => t('Yes'),
+      ],
+      '#title' => t('Auto-htaccess generation'),
+      '#type' => 'select',
+    ];
+
     return $fields;
+  }
+
+  public static function setConfig(string $driverName, FormStateInterface $form_state, Config $config) {
+    $configArray  =       [
+      'path' => (string)$form_state->getValue("phpfastcache_drivers_config_{$driverName}_path"),
+      'security_key' => (string)$form_state->getValue("phpfastcache_drivers_config_{$driverName}_security_key"),
+      'htaccess' => (bool)$form_state->getValue("phpfastcache_drivers_config_{$driverName}_htaccess"),
+    ];
+
+    if($driverName === 'files'){
+      $configArray['secure_file_manipulation'] = (bool)$form_state->getValue("phpfastcache_drivers_config_{$driverName}_secure_file_manipulation");
+    }
+
+    $config->set('phpfastcache_drivers_config.' . $driverName, $configArray);
   }
 }

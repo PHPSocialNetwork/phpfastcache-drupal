@@ -5,7 +5,7 @@ namespace Drupal\phpfastcache\Form\Fields;
 use Drupal\Core\Config\Config;
 use Drupal\Core\Form\FormStateInterface;
 
-class PhpfastcacheAdminNoFieldFields implements PhpfastcacheAdminFieldsInterface {
+class PhpfastcacheAdminUnknownFieldFields implements PhpfastcacheAdminFieldsInterface {
 
   /**
    * @param string $driverName
@@ -13,19 +13,7 @@ class PhpfastcacheAdminNoFieldFields implements PhpfastcacheAdminFieldsInterface
    * @return string
    */
   public static function getDescription(string $driverName): string {
-    switch ($driverName) {
-      case 'devnull':
-        return 'Devnull is a void cache that cache nothing, useful for development. <br />'
-               . '<strong>Do not use this settings in a production environment.</strong>';
-        break;
-      case 'zenddisk':
-      case 'zendshm':
-        return 'This driver however requires that your server runs on Zend Server';
-        break;
-      default:
-        return '';
-        break;
-    }
+    return '';
   }
 
   /**
@@ -43,7 +31,7 @@ class PhpfastcacheAdminNoFieldFields implements PhpfastcacheAdminFieldsInterface
     $fields[ 'driver_container_settings__' . $driverName ][ "phpfastcache_drivers_config_{$driverName}_item" ] = [
       '#type'        => 'item',
       '#title'       => t(
-        ':driver driver does not needs specific configuration',
+        'Unknown driver ":driver". It is may not yet supported by the Phpfastcache module',
         [':driver' => ucfirst($driverName)]
       ),
       '#markup'      => '',
@@ -53,7 +41,5 @@ class PhpfastcacheAdminNoFieldFields implements PhpfastcacheAdminFieldsInterface
     return $fields;
   }
 
-  public static function setConfig(string $driverName, FormStateInterface $form_state, Config $config) {
-    $config->set('phpfastcache_drivers_config.' . $driverName, []);
-  }
+  public static function setConfig(string $driverName, FormStateInterface $form_state, Config $config) {}
 }

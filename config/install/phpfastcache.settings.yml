@@ -2,7 +2,6 @@ phpfastcache_enabled: false
 phpfastcache_env: prod
 phpfastcache_prefix: ''
 phpfastcache_default_ttl: 900
-phpfastcache_htaccess: true
 phpfastcache_default_driver: files
 phpfastcache_bins: ['bootstrap', 'menu', 'discovery']
 phpfastcache_drivers_config:
@@ -10,6 +9,7 @@ phpfastcache_drivers_config:
                             apcu: []
                             couchbase:
                                   host: '127.0.0.1'
+                                  port: 8091
                                   username: ''
                                   password: ''
                                   bucket: 'default'
@@ -18,9 +18,11 @@ phpfastcache_drivers_config:
                             files:
                                   security_key: 'auto'
                                   path: ''
+                                  htaccess: true
                             leveldb:
                                   security_key: 'auto'
                                   path: ''
+                                  htaccess: true
                             memcache:
                                   host: '127.0.0.1'
                                   port: 11211
@@ -48,10 +50,11 @@ phpfastcache_drivers_config:
                                   port: 6379
                                   password: ''
                                   timeout: 5
-                                  dbindex: '0'
+                                  database: '0'
                             sqlite:
                                   security_key: 'auto'
                                   path: ''
+                                  htaccess: true
                             ssdb:
                                   host: '127.0.0.1'
                                   port: 8888

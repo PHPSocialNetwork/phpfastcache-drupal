@@ -2,6 +2,7 @@
 namespace Drupal\phpfastcache\Form\Fields;
 
 use Drupal\Core\Config\Config;
+use Drupal\Core\Form\FormStateInterface;
 
 class PhpfastcacheAdminSsdbFields implements PhpfastcacheAdminFieldsInterface{
 
@@ -50,5 +51,17 @@ class PhpfastcacheAdminSsdbFields implements PhpfastcacheAdminFieldsInterface{
     ];
 
     return $fields;
+  }
+
+  public static function setConfig(string $driverName, FormStateInterface $form_state, Config $config) {
+    $config->set(
+      'phpfastcache_drivers_config.' . $driverName,
+      [
+        'host' => (string)$form_state->getValue('phpfastcache_drivers_config_ssdb_host'),
+        'port' => (int)$form_state->getValue('phpfastcache_drivers_config_ssdb_port'),
+        'password' => (string)$form_state->getValue('phpfastcache_drivers_config_ssdb_password'),
+        'timeout' => (int)$form_state->getValue('phpfastcache_drivers_config_ssdb_timeout'),
+      ]
+    );
   }
 }

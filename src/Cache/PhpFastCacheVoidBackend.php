@@ -10,6 +10,7 @@ use phpFastCache\Cache\ExtendedCacheItemPoolInterface;
 
 /**
  * Class PhpFastCacheService
+ * @todo Uncamelize class name...
  */
 class PhpFastCacheVoidBackend implements CacheBackendInterface
 {
