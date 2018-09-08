@@ -4,7 +4,7 @@ namespace Drupal\phpfastcache\Form\Fields;
 use Drupal\Core\Config\Config;
 use Drupal\Core\Form\FormStateInterface;
 
-class PhpfastcacheAdminFilesFields implements PhpfastcacheAdminFieldsInterface{
+class PhpfastcacheAdminFilesFields extends PhpfastcacheAdminAbstractFields{
 
   public static function getDescription(string $driverName):string
   {
@@ -13,10 +13,7 @@ class PhpfastcacheAdminFilesFields implements PhpfastcacheAdminFieldsInterface{
 
   public static function getFields(string $driverName, Config $config): array
   {
-    $fields = PhpfastcacheAdminContainerDetailField::getFields(
-      $driverName,
-      self::getDescription($driverName)
-    );
+    $fields = parent::getFields($driverName, $config);
 
     $fields[ 'driver_container_settings__' . $driverName ][ "phpfastcache_drivers_config_{$driverName}_item" ] = [
       '#type' => 'item',
@@ -53,6 +50,20 @@ class PhpfastcacheAdminFilesFields implements PhpfastcacheAdminFieldsInterface{
         '#title' => t('Secure file manipulation'),
         '#type' => 'select',
       ];
+
+      $fields[ 'driver_container_settings__' . $driverName ][ "phpfastcache_drivers_config_{$driverName}_cache_file_extension" ] = [
+        '#default_value' => $config->get("phpfastcache_drivers_config.{$driverName}.cache_file_extension"),
+        '#description' => t('Allows you to set a custom cache file extension.'),
+        '#required' => true,
+        '#options' => [
+          'txt' => 'txt',
+          'pfc' => 'pfc',
+          'cache' => 'cache',
+          'db' => 'db',
+        ],
+        '#title' => t('Cache file extension'),
+        '#type' => 'select',
+      ];
     }
 
     $fields[ 'driver_container_settings__' . $driverName ][ "phpfastcache_drivers_config_{$driverName}_htaccess" ] = [
@@ -79,6 +90,7 @@ class PhpfastcacheAdminFilesFields implements PhpfastcacheAdminFieldsInterface{
 
     if($driverName === 'files'){
       $configArray['secure_file_manipulation'] = (bool)$form_state->getValue("phpfastcache_drivers_config_{$driverName}_secure_file_manipulation");
+      $configArray['cache_file_extension'] = (string)$form_state->getValue("phpfastcache_drivers_config_{$driverName}_cache_file_extension");
     }
 
     $config->set('phpfastcache_drivers_config.' . $driverName, $configArray);

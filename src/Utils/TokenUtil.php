@@ -14,11 +14,17 @@ class TokenUtil {
    * @return array
    */
   public static function getTokensPairs():array {
+    /**
+     * Feel free to propose your own
+     * by making a pull request
+     */
     return [
-      '%YEAR%' => date('Y'),
-      '%MONTH%' => date('m'),
-      '%DAY%' => date('d'),
       '%DRUPAL_ROOT%' => \DRUPAL_ROOT,
+      '%TIMESTAMP%' => time(),
+      '%DATE_W3C%' => (new \DateTime())->format(\DateTime::W3C),
+      '%DAY%' => date('d'),
+      '%MONTH%' => date('m'),
+      '%YEAR%' => date('Y'),
     ];
   }
 

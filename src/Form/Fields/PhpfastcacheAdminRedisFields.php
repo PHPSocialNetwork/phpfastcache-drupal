@@ -5,7 +5,7 @@ namespace Drupal\phpfastcache\Form\Fields;
 use Drupal\Core\Config\Config;
 use Drupal\Core\Form\FormStateInterface;
 
-class PhpfastcacheAdminRedisFields implements PhpfastcacheAdminFieldsInterface {
+class PhpfastcacheAdminRedisFields extends PhpfastcacheAdminAbstractFields {
 
   /**
    * @param string $driverName
@@ -30,10 +30,7 @@ class PhpfastcacheAdminRedisFields implements PhpfastcacheAdminFieldsInterface {
   }
 
   public static function getFields(string $driverName, Config $config): array {
-    $fields = PhpfastcacheAdminContainerDetailField::getFields(
-      $driverName,
-      self::getDescription($driverName)
-    );
+    $fields = parent::getFields($driverName, $config);
 
     $fields[ 'driver_container_settings__' . $driverName ][ "phpfastcache_drivers_config_{$driverName}_host" ] = [
       '#type'          => 'textfield',

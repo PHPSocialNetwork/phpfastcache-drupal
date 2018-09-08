@@ -8,7 +8,7 @@
 
 namespace Drupal\phpfastcache\Cache;
 
-
+use Drupal\phpfastcache\Exceptions\CacheBackendException;
 use Drupal\phpfastcache\Utils\StringUtil;
 use Drupal\phpfastcache\Utils\TokenUtil;
 use Phpfastcache\CacheManager;
@@ -27,6 +27,7 @@ class PhpfastcacheInstanceBuilder {
    * @throws \Phpfastcache\Exceptions\PhpfastcacheDriverNotFoundException
    * @throws \Phpfastcache\Exceptions\PhpfastcacheInvalidArgumentException
    * @throws \Phpfastcache\Exceptions\PhpfastcacheInvalidConfigurationException
+   * @throws \Drupal\phpfastcache\Exceptions\CacheBackendException
    */
   public static function buildInstance($settings): ExtendedCacheItemPoolInterface
   {
@@ -51,15 +52,15 @@ class PhpfastcacheInstanceBuilder {
         )
       );
     } catch (PhpfastcacheDriverCheckException $e) {
-      $error    = "The '{$driverName}' driver failed to initialize with the following error: {$e->getMessage()}.";
+      $error    = "The '{$driverName}' driver failed to initialize with the following error: {$e->getMessage()} line {$e->getLine()} in {$e->getFile()}.";
       $instance = CacheManager::getInstance('Devnull');
     } catch (\Throwable $e) {
-      $error    = "The '{$driverName}' driver encountered the following error: {$e->getMessage()}.";
+      $error    = "The '{$driverName}' driver encountered the following error: {$e->getMessage()} line {$e->getLine()} in {$e->getFile()}.";
       $instance = CacheManager::getInstance('Devnull');
     }
 
     if ($error) {
-      throw new ServiceUnavailableHttpException(60, $error, $e ?? NULL);
+      throw new CacheBackendException($error, 0, $e ?? NULL);
     }
 
     return $instance;

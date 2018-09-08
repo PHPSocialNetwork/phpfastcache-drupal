@@ -1,4 +1,9 @@
 services:
+    phpfastcache_event_subscriber:
+        class: Drupal\phpfastcache\EventSubscriber\PhpfastcacheSubscriber
+        arguments: ['@cache.backend.phpfastcache']
+        tags:
+        - {name: event_subscriber}
     cache.backend.phpfastcache:
-        class: Drupal\phpfastcache\Cache\PhpFastCacheBackendFactory
+        class: Drupal\phpfastcache\Cache\PhpfastcacheBackendFactory
         arguments: ['@database']

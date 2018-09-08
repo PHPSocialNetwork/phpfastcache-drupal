@@ -24,6 +24,9 @@ class PhpfastcacheAdminFieldClassMap{
       case 'couchbase':
         return PhpfastcacheAdminCouchbaseFields::class;
         break;
+      case 'couchdb':
+        return PhpfastcacheAdminCouchdbFields::class;
+        break;
       case 'files':
       case 'leveldb':
       case 'sqlite':
@@ -39,6 +42,9 @@ class PhpfastcacheAdminFieldClassMap{
       case 'predis':
       case 'redis':
         return PhpfastcacheAdminRedisFields::class;
+        break;
+      case 'riak':
+        return PhpfastcacheAdminRiakFields::class;
         break;
       case 'ssdb':
         return PhpfastcacheAdminSsdbFields::class;

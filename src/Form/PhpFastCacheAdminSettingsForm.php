@@ -5,10 +5,11 @@ namespace Drupal\phpfastcache\Form;
 use Drupal\Component\Utility\Random;
 use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\phpfastcache\Cache\PhpFastCacheBackendFactory;
+use Drupal\phpfastcache\Cache\PhpfastcacheBackendFactory;
 use Drupal\phpfastcache\Form\Fields\PhpfastcacheAdminFieldClassMap;
-use Phpfastcache\CacheManager;
-use phpFastCache\Exceptions\phpFastCacheDriverCheckException;
+use Drupal\phpfastcache\CacheManager;
+use Phpfastcache\Api as PhpfastcacheApi;
+use Phpfastcache\Exceptions\PhpfastcacheDriverCheckException;
 
 /**
  * Configure phpfastcache settings for this site.
@@ -93,6 +94,7 @@ class PhpFastCacheAdminSettingsForm extends ConfigFormBase {
       ],
     ];
 
+    // @todo conditional if webprofiler module
     $form[ 'general' ][ 'phpfastcache_settings_wrapper' ][ 'phpfastcache_env' ] = [
       '#default_value' => (string) $config->get('phpfastcache_env'),
       '#description'   => $this->t(
@@ -101,8 +103,8 @@ class PhpFastCacheAdminSettingsForm extends ConfigFormBase {
       ),
       '#required'      => TRUE,
       '#options'       => [
-        PhpFastCacheBackendFactory::ENV_DEV  => t('Production'),
-        PhpFastCacheBackendFactory::ENV_PROD => t('Development'),
+        PhpfastcacheBackendFactory::ENV_DEV  => t('Development'),
+        PhpfastcacheBackendFactory::ENV_PROD => t('Production'),
       ],
       '#title'         => $this->t('PhpFastCache environment'),
       '#type'          => 'select',
@@ -123,39 +125,10 @@ class PhpFastCacheAdminSettingsForm extends ConfigFormBase {
 
     $form[ 'general' ][ 'phpfastcache_settings_wrapper' ][ 'phpfastcache_default_ttl' ] = [
       '#default_value' => (int) $config->get('phpfastcache_default_ttl'),
-      '#description'   => $this->t('Enable or disable all the PhpFastCache components'),
+      '#description'   => $this->t('Default TTL is no one is specified.'),
       '#required'      => TRUE,
       '#title'         => $this->t('Default <abbr title="Time to live">TTL</abbr>'),
       '#type'          => 'textfield',
-    ];
-
-
-    $binDescCallback = function ($binName, $binDesc = '') {
-      return '<span>' . t(ucfirst($binName)) . '</span>' . ($binDesc ? '&nbsp;-&nbsp;<small>' . t($binDesc) . '</small>' : '');
-    };
-
-    $form[ 'general' ][ 'phpfastcache_settings_wrapper' ][ 'phpfastcache_bins' ] = [
-      '#default_value' => (array) $config->get('phpfastcache_bins'),
-      '#description'   => 'See /core/core.services.yml for more information about bin uses',
-      '#required'      => FALSE,
-      '#options'       => [
-        'default'            => $binDescCallback(
-          'default',
-          'Default bin if not specified by modules/core or for any custom/unknown bins. <strong>Recommended</strong>'
-        ),
-        'menu'               => $binDescCallback('menu', 'Menu tree/items'),
-        'bootstrap'          => $binDescCallback('bootstrap', 'Drupal bootstrap/core initialization'),
-        'render'             => $binDescCallback(
-          'render',
-          'You must expect the cache size to grow up quickly, make sure that the driver you choose have enough memory/disk space.'
-        ),
-        'config'             => $binDescCallback('config', 'You will have to purge the cache after each settings changes'),
-        'dynamic_page_cache' => $binDescCallback('dynamic page cache', ''),
-        'entity'             => $binDescCallback('entity', 'You will have to purge the cache after each entity changes'),
-        'discovery'          => $binDescCallback('discovery', 'Used for plugin manager, entity type manager, field manager, etc.'),
-      ],
-      '#title'         => $this->t('Bins handled by PhpFastCache'),
-      '#type'          => 'checkboxes',
     ];
 
     $driversOption = [];
@@ -194,6 +167,21 @@ class PhpFastCacheAdminSettingsForm extends ConfigFormBase {
                                       ::getFields($driverName, $config);
     }
 
+    $phpfastcacheInfo = system_get_info('module', 'webprofiler');
+
+    $form[ 'general' ][ 'credit' ] = [
+      '#markup' => '<div class="text-right"><small>Phpfastcache module v'
+                   . ($phpfastcacheInfo['version'] ?? $phpfastcacheInfo['core'] ?? ' Unknown')
+                   . ' (Lib v' . PhpfastcacheApi::getPhpFastCacheVersion()
+                   . ' , API v' . PhpfastcacheApi::getVersion()
+                   . ')</small></div>',
+    ];
+
+    /**
+     * Field group dependency
+     */
+    $form[ '#attached' ][ 'library' ][] = 'phpfastcache/phpfastcache.admin';
+
     return parent::buildForm($form, $form_state);
   }
 
@@ -207,7 +195,7 @@ class PhpFastCacheAdminSettingsForm extends ConfigFormBase {
          * @todo: Call PhpfastcacheInstanceBuilder here
          */
         @CacheManager::getInstance($form_state->getValue('phpfastcache_default_driver'));
-      } catch (phpFastCacheDriverCheckException $e) {
+      } catch (PhpfastcacheDriverCheckException $e) {
         $form_state->setError($form, 'This driver is not usable at the moment, error code: ' . $e->getMessage());
       } catch (\Throwable $e) {
         $form_state->setError($form, 'This driver has encountered an error: ' . $e->getMessage());
@@ -243,8 +231,7 @@ class PhpFastCacheAdminSettingsForm extends ConfigFormBase {
            ->set('phpfastcache_env', (string) $form_state->getValue('phpfastcache_env'))
            ->set('phpfastcache_prefix', (string) $form_state->getValue('phpfastcache_prefix'))
            ->set('phpfastcache_default_ttl', (int) $form_state->getValue('phpfastcache_default_ttl'))
-           ->set('phpfastcache_default_driver', (string) $form_state->getValue('phpfastcache_default_driver'))
-           ->set('phpfastcache_bins', array_values(array_filter((array) $form_state->getValue('phpfastcache_bins'))));
+           ->set('phpfastcache_default_driver', (string) $form_state->getValue('phpfastcache_default_driver'));
 
     /*****************
      * Drivers settings

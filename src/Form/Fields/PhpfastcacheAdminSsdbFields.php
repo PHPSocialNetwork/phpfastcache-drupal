@@ -4,7 +4,7 @@ namespace Drupal\phpfastcache\Form\Fields;
 use Drupal\Core\Config\Config;
 use Drupal\Core\Form\FormStateInterface;
 
-class PhpfastcacheAdminSsdbFields implements PhpfastcacheAdminFieldsInterface{
+class PhpfastcacheAdminSsdbFields extends PhpfastcacheAdminAbstractFields{
 
   public static function getDescription(string $driverName):string
   {
@@ -13,10 +13,7 @@ class PhpfastcacheAdminSsdbFields implements PhpfastcacheAdminFieldsInterface{
 
   public static function getFields(string $driverName, Config $config): array
   {
-    $fields = PhpfastcacheAdminContainerDetailField::getFields(
-      $driverName,
-      self::getDescription($driverName)
-    );
+    $fields = parent::getFields($driverName, $config);
 
     $fields[ 'driver_container_settings__' . $driverName ][ "phpfastcache_drivers_config_{$driverName}_host" ] = [
       '#type' => 'textfield',

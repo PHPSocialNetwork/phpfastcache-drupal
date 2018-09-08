@@ -1,0 +1,8 @@
+phpfastcache.admin:
+  version: VERSION
+  # js:
+  #   js/block.admin.js: {}
+  css:
+    theme:
+      css/phpfastcache.admin.css: {}
+  dependencies: []

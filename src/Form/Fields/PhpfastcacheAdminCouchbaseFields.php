@@ -5,17 +5,14 @@ namespace Drupal\phpfastcache\Form\Fields;
 use Drupal\Core\Config\Config;
 use Drupal\Core\Form\FormStateInterface;
 
-class PhpfastcacheAdminCouchbaseFields implements PhpfastcacheAdminFieldsInterface {
+class PhpfastcacheAdminCouchbaseFields extends PhpfastcacheAdminAbstractFields {
 
   public static function getDescription(string $driverName): string {
     return '';
   }
 
   public static function getFields(string $driverName, Config $config): array {
-    $fields = PhpfastcacheAdminContainerDetailField::getFields(
-      $driverName,
-      self::getDescription($driverName)
-    );
+    $fields = parent::getFields($driverName, $config);
 
     $fields[ 'driver_container_settings__' . $driverName ][ "phpfastcache_drivers_config_{$driverName}_host" ] = [
       '#type'          => 'textfield',
@@ -34,7 +31,7 @@ class PhpfastcacheAdminCouchbaseFields implements PhpfastcacheAdminFieldsInterfa
     ];
 
     $fields[ 'driver_container_settings__' . $driverName ][ "phpfastcache_drivers_config_{$driverName}_username" ] = [
-      '#type'          => 'password',
+      '#type'          => 'textfield',
       '#title'         => t('CouchBase username'),
       '#default_value' => $config->get("phpfastcache_drivers_config.{$driverName}.username"),
       '#description'   => t('The CouchBase username'),
@@ -73,7 +70,7 @@ class PhpfastcacheAdminCouchbaseFields implements PhpfastcacheAdminFieldsInterfa
       'phpfastcache_drivers_config.' . $driverName,
       [
         'host'            => (string) $form_state->getValue('phpfastcache_drivers_config_couchbase_host'),
-        'port'            => (string) $form_state->getValue('phpfastcache_drivers_config_couchbase_port'),
+        'port'            => (int) $form_state->getValue('phpfastcache_drivers_config_couchbase_port'),
         'username'        => (string) $form_state->getValue('phpfastcache_drivers_config_couchbase_username'),
         'password'        => (string) $form_state->getValue('phpfastcache_drivers_config_couchbase_password'),
         'bucket'          => (string) $form_state->getValue('phpfastcache_drivers_config_couchbase_bucket'),

@@ -6,13 +6,14 @@ namespace Drupal\phpfastcache\Cache;
 
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\CacheBackendInterface;
-use phpFastCache\Cache\ExtendedCacheItemPoolInterface;
+use Drupal\phpfastcache\Exceptions\UnsupportedMethodException;
+use phpFastCache\Core\Pool\ExtendedCacheItemPoolInterface;
 
 /**
  * Class PhpFastCacheService
  * @todo Uncamelize class name...
  */
-class PhpFastCacheVoidBackend implements CacheBackendInterface
+class PhpfastcacheVoidBackend implements CacheBackendInterface
 {
     /**
      * The name of the cache bin to use.
