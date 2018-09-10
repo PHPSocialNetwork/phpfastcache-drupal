@@ -35,10 +35,10 @@ class PhpfastcacheAdminMemcacheFields implements PhpfastcacheAdminFieldsInterfac
       '#required' => true,
     ];
 
-    $fields[ 'driver_container_settings__' . $driverName ][ "phpfastcache_drivers_config_{$driverName}_sasl_username" ] = [
+    $fields[ 'driver_container_settings__' . $driverName ][ "phpfastcache_drivers_config_{$driverName}_sasl_user" ] = [
       '#type' => 'password',
-      '#title' => t('Memcache SASL username'),
-      '#default_value' => $config->get("phpfastcache_drivers_config.{$driverName}.username"),
+      '#title' => t('Memcache SASL user'),
+      '#default_value' => $config->get("phpfastcache_drivers_config.{$driverName}.user"),
       '#description' => t('The Memcache SASL username, if needed'),
       '#required' => false,
     ];
@@ -60,7 +60,7 @@ class PhpfastcacheAdminMemcacheFields implements PhpfastcacheAdminFieldsInterfac
       [
         'host' => (string)$form_state->getValue("phpfastcache_drivers_config_{$driverName}_host"),
         'port' => (int) $form_state->getValue("phpfastcache_drivers_config_{$driverName}_port"),
-        'sasl_username' => (string)$form_state->getValue("phpfastcache_drivers_config_{$driverName}_sasl_username"),
+        'sasl_user' => (string)$form_state->getValue("phpfastcache_drivers_config_{$driverName}_sasl_user"),
         'sasl_password' => (string)$form_state->getValue("phpfastcache_drivers_config_{$driverName}_sasl_password"),
       ]
     );

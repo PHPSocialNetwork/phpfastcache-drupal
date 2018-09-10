@@ -28,12 +28,12 @@ phpfastcache_drivers_config:
   memcache:
     host: 127.0.0.1
     port: 11211
-    sasl_username: ''
+    sasl_user: ''
     sasl_password: ''
   memcached:
     host: 127.0.0.1
     port: 11211
-    sasl_username: ''
+    sasl_user: ''
     sasl_password: ''
   mongodb:
     host: 127.0.0.1
