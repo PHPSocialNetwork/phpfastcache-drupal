@@ -3,6 +3,8 @@
 namespace Drupal\phpfastcache\Form;
 
 use Drupal\Component\Utility\Random;
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Extension\ModuleHandler;
 use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\phpfastcache\Cache\PhpfastcacheBackendFactory;
@@ -10,6 +12,7 @@ use Drupal\phpfastcache\Form\Fields\PhpfastcacheAdminFieldClassMap;
 use Drupal\phpfastcache\CacheManager;
 use Phpfastcache\Api as PhpfastcacheApi;
 use Phpfastcache\Exceptions\PhpfastcacheDriverCheckException;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Configure phpfastcache settings for this site.
@@ -18,6 +21,32 @@ use Phpfastcache\Exceptions\PhpfastcacheDriverCheckException;
 class PhpFastCacheAdminSettingsForm extends ConfigFormBase {
 
   const PREFIX_REGEXP = '^\w*$';
+
+  /**
+   * @var \Drupal\Core\Extension\ModuleHandler
+   */
+  protected $moduleHandler;
+
+  /**
+   * PhpFastCacheAdminSettingsForm constructor.
+   *
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
+   * @param \Drupal\Core\Extension\ModuleHandler       $moduleHandler
+   */
+  public function __construct(ConfigFactoryInterface $config_factory, ModuleHandler $moduleHandler) {
+    parent::__construct($config_factory);
+    $this->moduleHandler = $moduleHandler;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container) {
+    return new static(
+      $container->get('config.factory'),
+      $container->get('module_handler')
+    );
+  }
 
   /**
    * {@inheritdoc}
@@ -94,27 +123,31 @@ class PhpFastCacheAdminSettingsForm extends ConfigFormBase {
       ],
     ];
 
-    // @todo conditional if webprofiler module
-    $form[ 'general' ][ 'phpfastcache_settings_wrapper' ][ 'phpfastcache_env' ] = [
-      '#default_value' => (string) $config->get('phpfastcache_env'),
-      '#description'   => $this->t(
-        '<strong>Production</strong>: Will displays minimal information in case of failure.<br />
+    if($this->moduleHandler->moduleExists('devel')){
+      $form[ 'general' ][ 'phpfastcache_settings_wrapper' ][ 'phpfastcache_env' ] = [
+        '#default_value' => (string) $config->get('phpfastcache_env'),
+        '#description'   => $this->t(
+          '<strong>Production</strong>: Will displays minimal information in case of failure.<br />
                                     <strong>Development</strong>: Will displays very verbose information in case of failure.'
-      ),
-      '#required'      => TRUE,
-      '#options'       => [
-        PhpfastcacheBackendFactory::ENV_DEV  => t('Development'),
-        PhpfastcacheBackendFactory::ENV_PROD => t('Production'),
-      ],
-      '#title'         => $this->t('PhpFastCache environment'),
-      '#type'          => 'select',
-    ];
+        ),
+        '#required'      => TRUE,
+        '#options'       => [
+          PhpfastcacheBackendFactory::ENV_DEV  => t('Development'),
+          PhpfastcacheBackendFactory::ENV_PROD => t('Production'),
+        ],
+        '#title'         => $this->t('PhpFastCache environment'),
+        '#type'          => 'select',
+      ];
+    }else if((string) $config->get('phpfastcache_env') === PhpfastcacheBackendFactory::ENV_DEV){
+      $config->set('phpfastcache_env', PhpfastcacheBackendFactory::ENV_PROD)
+             ->save();
+    }
 
     $form[ 'general' ][ 'phpfastcache_settings_wrapper' ][ 'phpfastcache_prefix' ] = [
       '#default_value' => (string) ($config->get('phpfastcache_prefix') ?: $randomService->name(6, TRUE)),
       '#description'   => $this->t(
         'The cache keyspace prefix that will be used to identify this website. 
-                                    This value length <strong>MUST</strong> be up to 8 chars and 4 chars minimum. <br />
+                                    This value length <strong>MUST</strong> be up to 8 chars and 2 chars minimum. <br />
                                     This value <strong>MUST</strong> be unique depending your other Drupal installations on this cache backend. <br />
                                     This value <strong>MUST</strong> be alpha-numeric (' . self::PREFIX_REGEXP . ')'
       ),
@@ -205,7 +238,6 @@ class PhpFastCacheAdminSettingsForm extends ConfigFormBase {
       $form_state->setError($form, 'The driver chosen is unavailable !');
     }
 
-
     /**
      * Field Validation: phpfastcache_prefix
      */
@@ -228,11 +260,13 @@ class PhpFastCacheAdminSettingsForm extends ConfigFormBase {
   public function submitForm(array &$form, FormStateInterface $form_state) {
     $config = $this->config('phpfastcache.settings');
     $config->set('phpfastcache_enabled', (bool) $form_state->getValue('phpfastcache_enabled'))
-           ->set('phpfastcache_env', (string) $form_state->getValue('phpfastcache_env'))
            ->set('phpfastcache_prefix', (string) $form_state->getValue('phpfastcache_prefix'))
            ->set('phpfastcache_default_ttl', (int) $form_state->getValue('phpfastcache_default_ttl'))
            ->set('phpfastcache_default_driver', (string) $form_state->getValue('phpfastcache_default_driver'));
 
+    if($this->moduleHandler->moduleExists('devel')){
+      $config->set('phpfastcache_env', (string) $form_state->getValue('phpfastcache_env'));
+    }
     /*****************
      * Drivers settings
      *****************/
@@ -260,7 +294,7 @@ class PhpFastCacheAdminSettingsForm extends ConfigFormBase {
        * using memcache and memcached or
        * redis and predis together for example
        */
-      @CacheManager::getInstance($driverName);
+      $i = @CacheManager::getInstance($driverName);
       return TRUE;
     } catch (PhpfastcacheDriverCheckException $e) {
       return FALSE;

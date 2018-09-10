@@ -9,7 +9,7 @@ use Phpfastcache\Core\Pool\ExtendedCacheItemPoolInterface;
 
 /**
  * Class PhpFastCacheBackendFactory
- * @todo Uncamelize class name...
+ *
  */
 class PhpfastcacheBackendFactory implements CacheFactoryInterface {
 
@@ -52,14 +52,21 @@ class PhpfastcacheBackendFactory implements CacheFactoryInterface {
   protected $connection;
 
   /**
+   * @var \Drupal\Core\Cache\CacheBackendInterface[]
+   */
+  protected $cacheBins = [];
+
+  /**
    * PhpFastCacheBackendFactory constructor.
    *
    * @param \Drupal\Core\Database\Connection $connection
+   *
    * @throws \Phpfastcache\Exceptions\PhpfastcacheDriverCheckException
    * @throws \Phpfastcache\Exceptions\PhpfastcacheDriverException
    * @throws \Phpfastcache\Exceptions\PhpfastcacheDriverNotFoundException
    * @throws \Phpfastcache\Exceptions\PhpfastcacheInvalidArgumentException
    * @throws \Phpfastcache\Exceptions\PhpfastcacheInvalidConfigurationException
+   * @throws \Drupal\phpfastcache\Exceptions\CacheBackendException
    */
   public function __construct(Connection $connection) {
     $this->backendClass = PhpfastcacheBackend::class;
@@ -97,15 +104,16 @@ class PhpfastcacheBackendFactory implements CacheFactoryInterface {
    * @throws \Phpfastcache\Exceptions\PhpfastcacheDriverNotFoundException
    * @throws \Phpfastcache\Exceptions\PhpfastcacheInvalidArgumentException
    * @throws \Phpfastcache\Exceptions\PhpfastcacheInvalidConfigurationException
+   * @throws \Drupal\phpfastcache\Exceptions\CacheBackendException
    */
   protected function getPhpfastcacheInstance(): ExtendedCacheItemPoolInterface {
     return PhpfastcacheInstanceBuilder::buildInstance($this->settings);
   }
 
   /**
-   * Get settings from database.
-   * At this level of runtime execution
-   * settings are not available yet.
+   * Get settings straight from database.
+   * At this level of runtime execution,
+   * settings API is not yet available.
    *
    * @return array
    */
@@ -126,19 +134,24 @@ class PhpfastcacheBackendFactory implements CacheFactoryInterface {
    * @param string $bin
    *   The cache bin for which the object is created.
    *
-   * @return \Drupal\phpfastcache\Cache\PhpfastcacheBackend|\Drupal\phpfastcache\Cache\PhpfastcacheVoidBackend
+   * @return \Drupal\Core\Cache\CacheBackendInterface
    *   The cache backend object for the specified cache bin.
    * @throws CacheBackendException
    */
   public function get($bin) {
-    try{
-      return new $this->backendClass($bin, $this->cachePool, $this->settings);
-    }catch(\Throwable $e){
-      throw new CacheBackendException(\sprintf(
-        'Failed to create a cache backend instance for "%s" cache bin, got the following error: %s',
-        $bin,
-        $e->getMessage()
-      ));
+    try {
+      if (!isset($this->cacheBins[ $bin ])) {
+        $this->cacheBins[ $bin ] = new $this->backendClass($bin, $this->cachePool, $this->settings);
+      }
+      return $this->cacheBins[ $bin ];
+    } catch (\Throwable $e) {
+      throw new CacheBackendException(
+        \sprintf(
+          'Failed to create a cache backend instance for "%s" cache bin, got the following error: %s',
+          $bin,
+          $e->getMessage()
+        )
+      );
     }
   }
 }

@@ -4,6 +4,7 @@ namespace Drupal\phpfastcache\EventSubscriber;
 
 use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Core\Cache\CacheFactoryInterface;
+use Drupal\Core\Extension\ModuleHandler;
 use Drupal\Core\Utility\Error;
 use Drupal\phpfastcache\Cache\PhpfastcacheBackendFactory;
 use Phpfastcache\Exceptions\PhpfastcacheRootException;
@@ -26,8 +27,14 @@ class PhpfastcacheSubscriber implements EventSubscriberInterface {
    */
   protected $cacheFactory;
 
-  public function __construct(CacheFactoryInterface $cacheFactory) {
+  /**
+   * @var \Drupal\Core\Extension\ModuleHandler
+   */
+  protected $moduleHandler;
+
+  public function __construct(CacheFactoryInterface $cacheFactory, ModuleHandler $moduleHandler) {
     $this->cacheFactory = $cacheFactory;
+    $this->moduleHandler = $moduleHandler;
   }
 
   /**
@@ -36,12 +43,15 @@ class PhpfastcacheSubscriber implements EventSubscriberInterface {
   public function onPhpfastcacheException(GetResponseForExceptionEvent $event) {
     /**
      * Make sure that we handle the exceptions
-     * that we should about
+     * that we are allowed to manage
      */
     if ($this->cacheFactory instanceof PhpfastcacheBackendFactory) {
       $settings      = $this->cacheFactory->getSettingsFromDatabase();
-      $culpritDriver = \ucfirst($settings[ 'phpfastcache_default_driver' ]);
-      if ($settings[ 'phpfastcache_env' ] === PhpfastcacheBackendFactory::ENV_DEV && $event->getException() instanceof PhpfastcacheRootException) {
+      if ($settings[ 'phpfastcache_env' ] === PhpfastcacheBackendFactory::ENV_DEV
+          && $event->getException() instanceof PhpfastcacheRootException
+          && $this->moduleHandler->moduleExists('devel')
+      ) {
+        $culpritDriver = \ucfirst($settings[ 'phpfastcache_default_driver' ]);
         /**
          * Preparing message args
          */

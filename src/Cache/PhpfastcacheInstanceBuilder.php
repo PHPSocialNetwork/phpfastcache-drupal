@@ -14,7 +14,6 @@ use Drupal\phpfastcache\Utils\TokenUtil;
 use Phpfastcache\CacheManager;
 use Phpfastcache\Core\Pool\ExtendedCacheItemPoolInterface;
 use Phpfastcache\Exceptions\PhpfastcacheDriverCheckException;
-use Symfony\Component\HttpKernel\Exception\ServiceUnavailableHttpException;
 
 class PhpfastcacheInstanceBuilder {
 
@@ -53,9 +52,11 @@ class PhpfastcacheInstanceBuilder {
       );
     } catch (PhpfastcacheDriverCheckException $e) {
       $error    = "The '{$driverName}' driver failed to initialize with the following error: {$e->getMessage()} line {$e->getLine()} in {$e->getFile()}.";
+      CacheManager::clearInstances();
       $instance = CacheManager::getInstance('Devnull');
     } catch (\Throwable $e) {
       $error    = "The '{$driverName}' driver encountered the following error: {$e->getMessage()} line {$e->getLine()} in {$e->getFile()}.";
+      CacheManager::clearInstances();
       $instance = CacheManager::getInstance('Devnull');
     }
 

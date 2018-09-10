@@ -223,13 +223,18 @@ class PhpfastcacheBackend implements CacheBackendInterface {
    *   An ASCII-encoded cache ID that is at most 255 characters long.
    * @see DatabaseBackend::normalizeCid()
    */
-  protected function normalizeCid($cid): string {
+  protected function normalizeCid(string $cid): string {
     static $maxKeyLength = 64;
 
     /**
-     * Add PhpFastCache Prefix
+     * Add Bin Prefix
      */
-    $cid = ($this->settings[ 'phpfastcache_prefix' ] ?: 'd8') . '-' . $cid;
+    $cid = $this->binPrefix . $cid;
+
+    /**
+     * Add Phpfastcache Prefix
+     */
+    $cid = ($this->settings[ 'phpfastcache_prefix' ] ?: 'D8') . '.' . $cid;
 
     /**
      * Nothing to do if the ID is a US ASCII string of 64 characters or less.
@@ -245,21 +250,23 @@ class PhpfastcacheBackend implements CacheBackendInterface {
      */
     $hash = Crypt::hashBase64($cid);
 
+    $hash = '_._' . trim(substr($hash, 3), '-_.');
+
     if (!$cid_is_ascii) {
       return $this->replaceUnsupportedPsr6Characters($hash);
     }
 
     return $this->replaceUnsupportedPsr6Characters(
-      $this->binPrefix . substr($cid, 0, $maxKeyLength - \strlen($hash)) . $hash
+      substr($cid, 0, $maxKeyLength - \strlen($hash)) . $hash
     );
   }
 
   /**
-   * @param $str
+   * @param string $str
    *
-   * @return mixed
+   * @return string
    */
-  protected function replaceUnsupportedPsr6Characters($str) {
+  protected function replaceUnsupportedPsr6Characters(string $str): string {
     return str_replace(
       ['{', '}', '(', ')', '/', '\\', '@', ':'],
       '_',

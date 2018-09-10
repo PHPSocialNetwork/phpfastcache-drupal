@@ -11,10 +11,17 @@ function phpfastcache_help(
   RouteMatchInterface $route_match
 ): TranslatableMarkup {
   if ($route_name === 'phpfastcache.admin_settings_form') {
+    $help = <<<HELP
+<a href=":site_url" target="_blank">Phpfastcache</a> is a high-performance backend cache system. 
+It is intended for use in speeding up dynamic web applications by alleviating database load. 
+Check out the <a href=":github_url" target="_blank">Github support</a> for the Phpfastcache's library only.
+HELP;
+
     return t(
-      '<a href=":url" target="_blank">PhpFastCache</a> is a high-performance, distributed object caching system, generic in nature, but intended for use in speeding up dynamic web applications by alleviating database load.',
+      nl2br($help),
       [
-        ':url' => 'https://github.com/PHPSocialNetwork/phpfastcache',
+        ':site_url' => 'https://www.phpfastcache.com/',
+        ':github_url' => 'https://github.com/PHPSocialNetwork/phpfastcache',
       ]
     );
   }
