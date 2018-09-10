@@ -1,6 +1,6 @@
 phpfastcache.admin_settings_form:
-  title: 'PhpFastCache'
+  title: 'Phpfastcache'
   parent: system.admin_config_development
-  description: 'Lorem Ipsum dolor'
+  description: ''
   route_name: phpfastcache.admin_settings_form
   weight: -20
